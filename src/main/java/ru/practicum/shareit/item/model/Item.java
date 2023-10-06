@@ -1,7 +1,7 @@
 package ru.practicum.shareit.item.model;
 
 import ru.practicum.shareit.request.ItemRequest;
-import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.model.User;
 import lombok.NonNull;
 import lombok.Data;
 
@@ -16,7 +16,7 @@ public class Item {
     @NonNull
     private Boolean available; // статус о том, доступна или нет вещь для аренды
     private final User owner; // владелец вещи
-    private final ItemRequest request;
+    private ItemRequest request;
     // если вещь была создана по запросу другого пользователя,
     // то в этом поле будет храниться ссылка на соответствующий запрос
 

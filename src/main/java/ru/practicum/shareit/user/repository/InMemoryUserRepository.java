@@ -1,6 +1,6 @@
 package ru.practicum.shareit.user.repository;
 
-import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 
@@ -23,7 +23,14 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<UserDto> getUserById(Long userId) {
+    public Optional<User> getUserById(Long userId) {
+        return users.values().stream()
+                .filter(user -> user.getId().equals(userId))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<UserDto> getUserDtoById(Long userId) {
         return users.values().stream()
                 .filter(user -> user.getId().equals(userId))
                 .map(UserMapper::toUserDto)
@@ -32,10 +39,11 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<UserDto> saveUser(User user) {
-        if (validateEmail(user.getEmail()) > 0) {
+    public Optional<UserDto> saveUser(UserDto userDto) {
+        if (validateEmail(userDto.getEmail()) > 0) {
             return Optional.empty();
         }
+        User user = UserMapper.toUser(userDto);
 
         user.setId(getNextId());
         users.put(user.getId(), user);
@@ -43,7 +51,7 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<UserDto> updateUser(long userId, UserDto userDto) {
+    public Optional<UserDto> updateUser(Long userId, UserDto userDto) {
         if (!users.containsKey(userId)) {
             return Optional.empty();
         }
@@ -64,7 +72,7 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
-    public boolean deleteUserById(long userId) {
+    public boolean deleteUserById(Long userId) {
         if (users.containsKey(userId)) {
             users.remove(userId);
             return true;

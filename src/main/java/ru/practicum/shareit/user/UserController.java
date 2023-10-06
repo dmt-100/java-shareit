@@ -4,19 +4,18 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
+import javax.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(path = "/users")
 @Slf4j
-@Validated
 public class UserController {
 
     private final UserService userService;
@@ -46,18 +45,22 @@ public class UserController {
     /**
      * Создание пользователя
      */
-    public UserDto saveUser(@Valid @RequestBody User user) {
-        UserDto userDto = userService.saveUser(user);
-        log.debug("Добавлен новый пользователь: {}", userDto);
+    public UserDto saveUser(@Valid @RequestBody UserDto userDto) {
+        UserDto userDtoNew = userService.saveUser(userDto);
+        log.debug("Добавлен новый пользователь: {}", userDtoNew);
         // не пойму, почему лог не выводится в консоль =(
-        return userDto;
+        // из всех контроллеров
+        //
+        //
+        //
+        return userDtoNew;
     }
 
     @PatchMapping("/{userId}")
     /**
      * Редактирование пользователя
      */
-    public UserDto updateUser(@PathVariable long userId, @RequestBody UserDto userDto) {
+    public UserDto updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
         userDto = userService.updateUser(userId, userDto);
         log.debug("Обновлен пользователь: {}", userDto);
         return userDto;
@@ -67,7 +70,7 @@ public class UserController {
     /**
      * Удаление пользователя по id
      */
-    public boolean deleteUserById(@PathVariable long userId) {
+    public boolean deleteUserById(@PathVariable Long userId) {
         log.debug("Удалён пользователь с id = {}", userId);
         return userService.deleteUserById(userId);
     }

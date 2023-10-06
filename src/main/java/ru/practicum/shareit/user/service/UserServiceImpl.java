@@ -1,7 +1,8 @@
 package ru.practicum.shareit.user.service;
 
-import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.UserNotFoundException;
+import ru.practicum.shareit.user.exception.UserNotFoundException;
+import ru.practicum.shareit.user.exception.UserNotSaveException;
+import ru.practicum.shareit.user.exception.UserNotUpdateException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -22,26 +23,25 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto getUserById(long userId) {
-        return userRepository.getUserById(userId).
-                orElseThrow(() -> new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден."));
+    public UserDto getUserById(Long userId) {
+        return userRepository.getUserDtoById(userId).orElseThrow(() ->
+                new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден."));
     }
 
     @Override
-    public UserDto saveUser(User user) {
-        return userRepository.saveUser(user).
-                orElseThrow(() -> new UserNotFoundException("Пользователь не был создан: " + user));
+    public UserDto saveUser(UserDto userDto) {
+        return userRepository.saveUser(userDto).orElseThrow(() ->
+                new UserNotSaveException("Пользователь не был создан: " + userDto));
     }
 
     @Override
-    public UserDto updateUser(long userId, UserDto userDto) {
-        return userRepository.updateUser(userId, userDto).
-                orElseThrow(() -> new UserNotFoundException("Пользователь с id = " + userId +
-                        " не был обновлён: " + userDto));
+    public UserDto updateUser(Long userId, UserDto userDto) {
+        return userRepository.updateUser(userId, userDto).orElseThrow(() ->
+                new UserNotUpdateException("Пользователь с id = " + userId + " не был обновлён: " + userDto));
     }
 
     @Override
-    public boolean deleteUserById(long userId) {
+    public boolean deleteUserById(Long userId) {
         return userRepository.deleteUserById(userId);
     }
 
