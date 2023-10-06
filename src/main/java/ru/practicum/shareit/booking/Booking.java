@@ -15,16 +15,16 @@ import lombok.NonNull;
 @Data
 public class Booking {
 
-    private Long id; // уникальный идентификатор бронирования
+    private Long id;
     @NonNull
-    private LocalDateTime start; // дата и время начала бронирования
+    private LocalDateTime start;
     @NonNull
-    private LocalDateTime end; // дата и время конца бронирования
+    private LocalDateTime end;
     @NonNull
-    private final Item item; // вещь, которую пользователь бронирует
+    private final Item item;
     @NonNull
-    private final User booker; // пользователь, который осуществляет бронирование
+    private final User booker;
     @NonNull
-    private StatusBooking status; //  статус бронирования
+    private StatusBooking status;
 
 }

@@ -3,26 +3,19 @@ package ru.practicum.shareit.item.mapper;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-public class ItemMapper {
+@Mapper
+public interface ItemMapper {
 
-    public static ItemDto toItemDto(Item item) {
-        return new ItemDto(
-                item.getId(),
-                item.getName(),
-                item.getDescription(),
-                item.isAvailable(),
-                item.getRequest() != null ? item.getRequest().getId() : null
-        );
-    }
+    @Mapping(target = "request", source = "item.request.id")
+    ItemDto toItemDto(Item item);
 
-    public static Item toItem(ItemDto itemDto, User owner) {
-        return new Item(
-                itemDto.getName(),
-                itemDto.getDescription(),
-                itemDto.getAvailable(),
-                owner
-        );
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "name", source = "itemDto.name")
+    @Mapping(target = "request", ignore = true)
+    @Mapping(target = "owner", source = "owner")
+    Item toItem(ItemDto itemDto, User owner);
 
 }

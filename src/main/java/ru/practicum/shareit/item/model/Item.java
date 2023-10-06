@@ -8,20 +8,16 @@ import lombok.Data;
 @Data
 public class Item {
 
-    private Long id; // уникальный идентификатор вещи
+    private Long id;
     @NonNull
-    private String name; // краткое название
+    private String name;
     @NonNull
-    private String description; // развёрнутое описание
+    private String description;
     @NonNull
-    private Boolean available; // статус о том, доступна или нет вещь для аренды
-    private final User owner; // владелец вещи
+    private Boolean available;
+    private final User owner;
     private ItemRequest request;
     // если вещь была создана по запросу другого пользователя,
     // то в этом поле будет храниться ссылка на соответствующий запрос
-
-    public Boolean isAvailable() {
-        return getAvailable();
-    }
 
 }

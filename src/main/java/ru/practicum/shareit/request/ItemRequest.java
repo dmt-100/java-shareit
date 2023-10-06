@@ -11,16 +11,15 @@ import lombok.NonNull;
  * TODO Sprint add-item-requests.
  */
 
-// класс, отвечающий за запрос вещи
 @Data
 public class ItemRequest {
 
-    private Long id; //  уникальный идентификатор запроса
+    private Long id;
     @NonNull
-    private final String description; // текст запроса, содержащий описание требуемой вещи
+    private final String description;
     @NonNull
-    private final User requestor; // пользователь, создавший запрос
+    private final User requestor;
     @NonNull
-    private final LocalDateTime created; // дата и время создания запроса
+    private final LocalDateTime created;
 
 }

@@ -6,10 +6,10 @@ import lombok.NonNull;
 @Data
 public class User {
 
-    private Long id; // уникальный идентификатор пользователя
+    private Long id;
     @NonNull
-    private String name; // имя или логин пользователя
+    private String name;
     @NonNull
-    private String email; // адрес электронной почты, уникальный
+    private String email;
 
 }

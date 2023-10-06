@@ -11,17 +11,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
+import org.mapstruct.factory.Mappers;
 
 @Repository
 public class InMemoryItemRepository implements ItemRepository {
 
     Map<Long, List<Item>> items = new HashMap<>();
     public static long itemId = 0;  // сквозной счетчик вещей
+    private final ItemMapper mapper = Mappers.getMapper(ItemMapper.class);
 
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId) {
         return items.get(userId).stream()
-                .map(ItemMapper::toItemDto)
+                .map(mapper::toItemDto)
                 .collect(Collectors.toList());
     }
 
@@ -38,13 +40,13 @@ public class InMemoryItemRepository implements ItemRepository {
         return items.values().stream()
                 .flatMap(Collection::stream)
                 .filter(item -> item.getId().equals(itemId))
-                .map(ItemMapper::toItemDto)
+                .map(mapper::toItemDto)
                 .findFirst();
     }
 
     @Override
     public Optional<ItemDto> saveItem(ItemDto itemDto, User user) {
-        Item item = ItemMapper.toItem(itemDto, user);
+        Item item = mapper.toItem(itemDto, user);
         item.setId(getNextId());
 
         items.compute(item.getOwner().getId(), (userId, userItems) -> {
@@ -55,7 +57,7 @@ public class InMemoryItemRepository implements ItemRepository {
             return userItems;
         });
 
-        return Optional.of(ItemMapper.toItemDto(item));
+        return Optional.of(mapper.toItemDto(item));
     }
 
     @Override
@@ -77,7 +79,7 @@ public class InMemoryItemRepository implements ItemRepository {
             item.setAvailable(itemDto.getAvailable());
         }
 
-        return Optional.of(ItemMapper.toItemDto(item));
+        return Optional.of(mapper.toItemDto(item));
     }
 
     @Override
@@ -87,7 +89,7 @@ public class InMemoryItemRepository implements ItemRepository {
                 .filter(item -> item.getAvailable().equals(true))
                 .filter(item -> (item.getName().toLowerCase().contains(text.toLowerCase()) ||
                         item.getDescription().toLowerCase().contains(text.toLowerCase())))
-                .map(ItemMapper::toItemDto)
+                .map(mapper::toItemDto)
                 .collect(Collectors.toList());
     }
 

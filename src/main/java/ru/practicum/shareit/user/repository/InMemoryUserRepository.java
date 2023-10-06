@@ -1,24 +1,26 @@
 package ru.practicum.shareit.user.repository;
 
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.mapper.UserMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
+import org.mapstruct.factory.Mappers;
 
 @Repository
 public class InMemoryUserRepository implements UserRepository {
 
     Map<Long, User> users = new HashMap<>();
-    public static long userId = 0;  // сквозной счетчик пользователей
+    public static long userId = 0;
+    private final UserMapper mapper = Mappers.getMapper(UserMapper.class);
 
     @Override
     public List<UserDto> getAllUsers() {
         return users.values().stream()
-                .map(UserMapper::toUserDto)
+                .map(mapper::toUserDto)
                 .collect(Collectors.toList());
     }
 
@@ -33,7 +35,7 @@ public class InMemoryUserRepository implements UserRepository {
     public Optional<UserDto> getUserDtoById(Long userId) {
         return users.values().stream()
                 .filter(user -> user.getId().equals(userId))
-                .map(UserMapper::toUserDto)
+                .map(mapper::toUserDto)
                 .findFirst();
 
     }
@@ -43,11 +45,11 @@ public class InMemoryUserRepository implements UserRepository {
         if (validateEmail(userDto.getEmail()) > 0) {
             return Optional.empty();
         }
-        User user = UserMapper.toUser(userDto);
+        User user = mapper.toUser(userDto);
 
         user.setId(getNextId());
         users.put(user.getId(), user);
-        return Optional.of(UserMapper.toUserDto(user));
+        return Optional.of(mapper.toUserDto(user));
     }
 
     @Override
@@ -68,7 +70,7 @@ public class InMemoryUserRepository implements UserRepository {
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
-        return Optional.of(UserMapper.toUserDto(user));
+        return Optional.of(mapper.toUserDto(user));
     }
 
     @Override

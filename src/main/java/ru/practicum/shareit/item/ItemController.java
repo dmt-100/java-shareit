@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/items")
@@ -23,20 +24,20 @@ public class ItemController {
     /**
      * Просмотр владельцем списка всех его вещей
      */
-    public List<ItemDto> getAllItemsByUser(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public ResponseEntity<List<ItemDto>> getAllItemsByUser(@RequestHeader("X-Sharer-User-Id") Long userId) {
         List<ItemDto> items = itemService.getAllItemsByUser(userId);
-        log.debug("Получен список вещей пользователя с id = {}, количество = {}.", userId, items.size());
-        return items;
+        log.info("Получен список вещей пользователя с id = {}, количество = {}.", userId, items.size());
+        return ResponseEntity.ok().body(items);
     }
 
     @GetMapping("/{itemId}")
     /**
      * Получение вещи по id
      */
-    public ItemDto getItemById(@PathVariable Long itemId) {
+    public ResponseEntity<ItemDto> getItemById(@PathVariable Long itemId) {
         ItemDto item = itemService.getItemById(itemId);
-        log.debug("Получена вещь с id = {}.", itemId);
-        return item;
+        log.info("Получена вещь с id = {}.", itemId);
+        return ResponseEntity.ok(item);
     }
 
     @PostMapping
@@ -44,34 +45,34 @@ public class ItemController {
     /**
      * Добавление новой вещи
      */
-    public ItemDto saveItem(@Valid @RequestBody ItemDto itemDto,
-                            @RequestHeader("X-Sharer-User-Id") Long userId) {
+    public ResponseEntity<ItemDto> saveItem(@Valid @RequestBody ItemDto itemDto,
+                                            @RequestHeader("X-Sharer-User-Id") Long userId) {
         ItemDto itemDtoNew = itemService.saveItem(itemDto, userId);
-        log.debug("Добавлена новая вещь: {}.", itemDtoNew);
-        return itemDtoNew;
+        log.info("Добавлена новая вещь: {}.", itemDtoNew);
+        return ResponseEntity.ok(itemDtoNew);
     }
 
     @PatchMapping("/{itemId}")
     /**
      * Редактирование вещи
      */
-    public ItemDto updateItem(@PathVariable Long itemId, @RequestBody ItemDto itemDto,
-                              @RequestHeader("X-Sharer-User-Id") Long userId) {
+    public ResponseEntity<ItemDto> updateItem(@PathVariable Long itemId, @RequestBody ItemDto itemDto,
+                                              @RequestHeader("X-Sharer-User-Id") Long userId) {
         itemDto = itemService.updateItem(itemId, itemDto, userId);
-        log.debug("Обновлена вещь: {}.", itemDto);
-        return itemDto;
+        log.info("Обновлена вещь: {}.", itemDto);
+        return ResponseEntity.ok(itemDto);
     }
 
     @GetMapping("/search")
     /**
      * Поиск вещи потенциальным арендатором
      */
-    public List<ItemDto> findItems(@RequestParam String text,
-                                   @RequestHeader("X-Sharer-User-Id") Long userId) {
+    public ResponseEntity<List<ItemDto>> findItems(@RequestParam String text,
+                                                   @RequestHeader("X-Sharer-User-Id") Long userId) {
         List<ItemDto> items = itemService.findItems(text, userId);
-        log.debug("Получен список вещей с текстом: \"{}\" пользователя с id = {}, количество = {}.",
+        log.info("Получен список вещей с текстом: \"{}\" пользователя с id = {}, количество = {}.",
                 text, userId, items.size());
-        return items;
+        return ResponseEntity.ok().body(items);
     }
 
 }
