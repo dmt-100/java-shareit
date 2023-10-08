@@ -25,19 +25,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getUserById(Long userId) {
         return userRepository.getUserDtoById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден."));
+                new UserNotFoundException(String.format("Пользователь с идентификатором %d не найден.", userId)));
     }
 
     @Override
     public UserDto saveUser(UserDto userDto) {
         return userRepository.saveUser(userDto).orElseThrow(() ->
-                new UserNotSaveException("Пользователь не был создан: " + userDto));
+                new UserNotSaveException(String.format("Пользователь не был создан: %s", userDto)));
     }
 
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
         return userRepository.updateUser(userId, userDto).orElseThrow(() ->
-                new UserNotUpdateException("Пользователь с id = " + userId + " не был обновлён: " + userDto));
+                new UserNotUpdateException(String.format("Пользователь с id = %d не был обновлён: %s", userId, userDto)));
     }
 
     @Override

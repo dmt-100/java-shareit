@@ -17,7 +17,7 @@ import org.mapstruct.factory.Mappers;
 public class InMemoryItemRepository implements ItemRepository {
 
     Map<Long, List<Item>> items = new HashMap<>();
-    public static long itemId = 0;  // сквозной счетчик вещей
+    private long itemId = 0;  // сквозной счетчик вещей
     private final ItemMapper mapper = Mappers.getMapper(ItemMapper.class);
 
     @Override
@@ -63,10 +63,10 @@ public class InMemoryItemRepository implements ItemRepository {
     @Override
     public Optional<ItemDto> updateItem(Long itemId, ItemDto itemDto, User user) {
         Item item = getItemById(itemId).orElseThrow(() ->
-                new ItemNotFoundException("Вещь с id = " + itemId + "не найдена."));
+                new ItemNotFoundException(String.format("Вещь с id = %d не найдена.", itemId)));
         if (!item.getOwner().equals(user)) {
-            throw new ItemOtherOwnerException(String.format("Пользователь с id = " + user.getId() +
-                    " не является владельцем вещи: " + itemDto));
+            throw new ItemOtherOwnerException(String.format("Пользователь с id = %d не является владельцем вещи: %s",
+                    user.getId(), itemDto));
         }
 
         if (itemDto.getName() != null) {
@@ -93,7 +93,7 @@ public class InMemoryItemRepository implements ItemRepository {
                 .collect(Collectors.toList());
     }
 
-    private static Long getNextId() {
+    private Long getNextId() {
         return ++itemId;
     }
 

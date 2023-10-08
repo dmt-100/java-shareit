@@ -26,30 +26,30 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId) {
         userRepository.getUserById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден."));
+                new UserNotFoundException(String.format("Пользователь с идентификатором %d не найден.", userId)));
         return itemRepository.getAllItemsByUser(userId);
     }
 
     @Override
     public ItemDto getItemById(Long itemId) {
         return itemRepository.getItemDtoById(itemId).orElseThrow(() ->
-                new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
+                new ItemNotFoundException(String.format("Вещь с идентификатором %d не найдена.", itemId)));
     }
 
     @Override
     public ItemDto saveItem(ItemDto itemDto, Long userId) {
         ItemDto itemDtoNew = validateItemDto(itemDto);
         return itemRepository.saveItem(itemDto, userRepository.getUserById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с id = " + userId + " не найден."))).orElseThrow(() ->
-                new ItemNotSaveException("Вещь не была создана: " + itemDtoNew));
+                new UserNotFoundException(String.format("Пользователь с id = %d не найден.", userId)))).orElseThrow(() ->
+                new ItemNotSaveException(String.format("Вещь не была создана: %s", itemDtoNew)));
     }
 
     @Override
     public ItemDto updateItem(Long itemId, ItemDto itemDto, Long userId) {
         User user = userRepository.getUserById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
+                new UserNotFoundException(String.format("Пользователь с id = %d не найден.", userId)));
         return itemRepository.updateItem(itemId, itemDto, user).orElseThrow(() ->
-                new ItemNotUpdateException("Вещь с id = " + itemId + " не была обновлена: " + itemDto));
+                new ItemNotUpdateException(String.format("Вещь с id = %d не была обновлена: %s", itemId, itemDto)));
     }
 
     @Override
