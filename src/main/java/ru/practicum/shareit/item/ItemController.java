@@ -18,14 +18,13 @@ import org.springframework.http.ResponseEntity;
 @Slf4j
 public class ItemController {
 
-    private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
     private final ItemService itemService;
 
     @GetMapping
     /**
      * Просмотр владельцем списка всех его вещей
      */
-    public ResponseEntity<List<ItemDto>> getAllItemsByUser(@RequestHeader(X_SHARER_USER_ID) Long userId) {
+    public ResponseEntity<List<ItemDto>> getAllItemsByUser(@RequestHeader("X-Sharer-User-Id") Long userId) {
         List<ItemDto> items = itemService.getAllItemsByUser(userId);
         log.info("Получен список вещей пользователя с id = {}, количество = {}.", userId, items.size());
         return ResponseEntity.ok().body(items);
@@ -47,7 +46,7 @@ public class ItemController {
      * Добавление новой вещи
      */
     public ResponseEntity<ItemDto> saveItem(@Valid @RequestBody ItemDto itemDto,
-                                            @RequestHeader(X_SHARER_USER_ID) Long userId) {
+                                            @RequestHeader("X-Sharer-User-Id") Long userId) {
         ItemDto itemDtoNew = itemService.saveItem(itemDto, userId);
         log.info("Добавлена новая вещь: {}.", itemDtoNew);
         return ResponseEntity.ok(itemDtoNew);
@@ -58,7 +57,7 @@ public class ItemController {
      * Редактирование вещи
      */
     public ResponseEntity<ItemDto> updateItem(@PathVariable Long itemId, @RequestBody ItemDto itemDto,
-                                              @RequestHeader(X_SHARER_USER_ID) Long userId) {
+                                              @RequestHeader("X-Sharer-User-Id") Long userId) {
         itemDto = itemService.updateItem(itemId, itemDto, userId);
         log.info("Обновлена вещь: {}.", itemDto);
         return ResponseEntity.ok(itemDto);
@@ -69,7 +68,7 @@ public class ItemController {
      * Поиск вещи потенциальным арендатором
      */
     public ResponseEntity<List<ItemDto>> findItems(@RequestParam String text,
-                                                   @RequestHeader(X_SHARER_USER_ID) Long userId) {
+                                                   @RequestHeader("X-Sharer-User-Id") Long userId) {
         List<ItemDto> items = itemService.findItems(text, userId);
         log.info("Получен список вещей с текстом: \"{}\" пользователя с id = {}, количество = {}.",
                 text, userId, items.size());
