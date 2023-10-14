@@ -5,6 +5,9 @@ import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.item.exception.ItemNotSaveException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.exception.ItemOtherOwnerException;
+import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
@@ -15,8 +18,11 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
 
@@ -25,31 +31,56 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId) {
-        userRepository.getUserById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден."));
-        return itemRepository.getAllItemsByUser(userId);
+        return ItemMapper.INSTANCE.convertItemListToItemDTOList(itemRepository.findAllByOwnerId(userId));
     }
 
     @Override
     public ItemDto getItemById(Long itemId) {
-        return itemRepository.getItemDtoById(itemId).orElseThrow(() ->
-                new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
+        return ItemMapper.INSTANCE.toItemDto(itemRepository.findById(itemId).orElseThrow(() ->
+                new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена.")));
     }
 
+    @Transactional
     @Override
     public ItemDto saveItem(ItemDto itemDto, Long userId) {
         ItemDto itemDtoNew = validateItemDto(itemDto);
-        return itemRepository.saveItem(itemDto, userRepository.getUserById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с id = " + userId + " не найден."))).orElseThrow(() ->
-                new ItemNotSaveException("Вещь не была создана: " + itemDtoNew));
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
+        Item item = ItemMapper.INSTANCE.toItem(itemDto, user);
+        try {
+            return ItemMapper.INSTANCE.toItemDto(itemRepository.save(item));
+        } catch (DataIntegrityViolationException e) {
+            throw new ItemNotSaveException("Вещь не была создана: " + itemDtoNew);
+        }
     }
 
+    @Transactional
     @Override
     public ItemDto updateItem(Long itemId, ItemDto itemDto, Long userId) {
-        User user = userRepository.getUserById(userId).orElseThrow(() ->
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
+                new ItemNotFoundException("Вещь с id = " + itemId + "не найдена."));
+        if (!item.getOwner().getId().equals(userId)) {
+            throw new ItemOtherOwnerException(String.format("Пользователь с id = " + userId +
+                    " не является владельцем вещи: " + itemDto));
+        }
+        userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
-        return itemRepository.updateItem(itemId, itemDto, user).orElseThrow(() ->
-                new ItemNotUpdateException("Вещь с id = " + itemId + " не была обновлена: " + itemDto));
+
+        if (itemDto.getName() != null) {
+            item.setName(itemDto.getName());
+        }
+        if (itemDto.getDescription() != null) {
+            item.setDescription(itemDto.getDescription());
+        }
+        if (itemDto.getAvailable() != null) {
+            item.setAvailable(itemDto.getAvailable());
+        }
+
+        try {
+            return ItemMapper.INSTANCE.toItemDto(itemRepository.saveAndFlush(item));
+        } catch (DataIntegrityViolationException e) {
+            throw new ItemNotUpdateException("Вещь с id = " + itemId + " не была обновлена: " + itemDto);
+        }
     }
 
     @Override
@@ -57,11 +88,10 @@ public class ItemServiceImpl implements ItemService {
         if (text.isEmpty()) {
             return Collections.EMPTY_LIST;
         }
-        return itemRepository.findItems(text, userId);
+        return ItemMapper.INSTANCE.convertItemListToItemDTOList(itemRepository.search(text));
     }
 
     private ItemDto validateItemDto(ItemDto itemDto) {
-        String message;
         if (itemDto.getAvailable() == null) {
             throw new ValidationException("Ошибка! Статус доступности вещи для аренды не может быть пустым.", 20001);
         }

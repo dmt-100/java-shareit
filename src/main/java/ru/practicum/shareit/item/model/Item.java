@@ -5,16 +5,18 @@ import ru.practicum.shareit.user.model.User;
 
 import java.util.HashSet;
 import java.util.Set;
+import javax.persistence.*;
 
 import lombok.NonNull;
 import lombok.Data;
-
-import javax.persistence.*;
 
 @Entity
 @Table(name = "items", schema = "public")
 @Data
 public class Item {
+
+    public Item() {
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,7 +37,7 @@ public class Item {
     @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
-    private final User owner; // владелец вещи
+    private User owner; // владелец вещи
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JoinColumn(name = "request_id")

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class InMemoryItemRepository implements ItemRepository {
+public class InMemoryItemRepository implements ItemRepositoryOld {
 
     Map<Long, List<Item>> items = new HashMap<>();
     public static long itemId = 0;  // сквозной счетчик вещей

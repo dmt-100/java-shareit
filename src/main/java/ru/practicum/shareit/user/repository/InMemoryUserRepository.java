@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class InMemoryUserRepository implements UserRepository {
+public class InMemoryUserRepository implements UserRepositoryOld {
 
     Map<Long, User> users = new HashMap<>();
     public static long userId = 0;  // сквозной счетчик пользователей

@@ -2,6 +2,9 @@ package ru.practicum.shareit.user.mapper;
 
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
+
+import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
@@ -15,5 +18,7 @@ public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
     User toUser(UserDto userDto);
+
+    List<UserDto> convertUserListToUserDTOList(List<User> list);
 
 }

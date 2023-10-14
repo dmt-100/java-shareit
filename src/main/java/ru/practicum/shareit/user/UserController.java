@@ -65,9 +65,9 @@ public class UserController {
     /**
      * Удаление пользователя по id
      */
-    public ResponseEntity<Boolean> deleteUserById(@PathVariable Long userId) {
+    public void deleteUserById(@PathVariable Long userId) {
         log.info("Удалён пользователь с id = {}", userId);
-        return ResponseEntity.ok(userService.deleteUserById(userId));
+        userService.deleteUserById(userId);
     }
 
 }

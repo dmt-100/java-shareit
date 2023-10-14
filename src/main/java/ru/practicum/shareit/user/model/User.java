@@ -1,14 +1,17 @@
 package ru.practicum.shareit.user.model;
 
+import javax.persistence.*;
+
 import lombok.Data;
 import lombok.NonNull;
-
-import javax.persistence.*;
 
 @Entity
 @Table(name = "users", schema = "public")
 @Data
 public class User {
+
+    public User() {
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
