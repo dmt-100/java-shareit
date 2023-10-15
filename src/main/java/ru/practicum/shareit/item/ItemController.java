@@ -34,10 +34,11 @@ public class ItemController {
     /**
      * Получение вещи по id
      */
-    public ResponseEntity<ItemDto> getItemById(@PathVariable Long itemId) {
-        ItemDto item = itemService.getItemById(itemId);
+    public ResponseEntity<ItemDto> getItemById(@PathVariable Long itemId,
+                                               @RequestHeader("X-Sharer-User-Id") Long userId) {
+        ItemDto itemDto = itemService.getItemById(itemId, userId);
         log.info("Получена вещь с id = {}.", itemId);
-        return ResponseEntity.ok(item);
+        return ResponseEntity.ok(itemDto);
     }
 
     @PostMapping
@@ -47,9 +48,9 @@ public class ItemController {
      */
     public ResponseEntity<ItemDto> saveItem(@Valid @RequestBody ItemDto itemDto,
                                             @RequestHeader("X-Sharer-User-Id") Long userId) {
-        ItemDto itemDtoNew = itemService.saveItem(itemDto, userId);
-        log.info("Добавлена новая вещь: {}.", itemDtoNew);
-        return ResponseEntity.ok(itemDtoNew);
+        itemDto = itemService.saveItem(itemDto, userId);
+        log.info("Добавлена новая вещь: {}.", itemDto);
+        return ResponseEntity.ok(itemDto);
     }
 
     @PatchMapping("/{itemId}")

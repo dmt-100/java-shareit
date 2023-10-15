@@ -3,11 +3,11 @@ package ru.practicum.shareit.request.model;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.Instant;
+import javax.persistence.*;
 
 import lombok.Data;
-import lombok.NonNull;
-
-import javax.persistence.*;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * TODO Sprint add-item-requests.
@@ -17,22 +17,22 @@ import javax.persistence.*;
 @Entity
 @Table(name = "requests", schema = "public")
 @Data
+@NoArgsConstructor
 public class ItemRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; //  уникальный идентификатор запроса
 
-    @NonNull
     @Column(nullable = false)
-    private final String description; // текст запроса, содержащий описание требуемой вещи
+    private String description; // текст запроса, содержащий описание требуемой вещи
 
-    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requestor_id", nullable = false)
-    private final User requestor; // пользователь, создавший запрос
+    @ToString.Exclude
+    private User requestor; // пользователь, создавший запрос
 
     @Column
-    private final Instant created = Instant.now(); // дата и время создания запроса
+    private Instant created = Instant.now(); // дата и время создания запроса
 
 }

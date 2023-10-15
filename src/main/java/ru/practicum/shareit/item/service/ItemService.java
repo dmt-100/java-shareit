@@ -8,7 +8,7 @@ public interface ItemService {
 
     List<ItemDto> getAllItemsByUser(Long userId);
 
-    ItemDto getItemById(Long itemId);
+    ItemDto getItemById(Long itemId, Long userId);
 
     ItemDto saveItem(ItemDto itemDto, Long userId);
 
