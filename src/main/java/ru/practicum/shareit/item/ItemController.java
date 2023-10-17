@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item;
 
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -32,7 +33,7 @@ public class ItemController {
 
     @GetMapping("/{itemId}")
     /**
-     * Получение вещи по id
+     * Получение вещи по id с комментариями
      */
     public ResponseEntity<ItemDto> getItemById(@PathVariable Long itemId,
                                                @RequestHeader("X-Sharer-User-Id") Long userId) {
@@ -71,9 +72,23 @@ public class ItemController {
     public ResponseEntity<List<ItemDto>> findItems(@RequestParam String text,
                                                    @RequestHeader("X-Sharer-User-Id") Long userId) {
         List<ItemDto> items = itemService.findItems(text, userId);
-        log.info("Получен список вещей с текстом: \"{}\" пользователя с id = {}, количество = {}.",
+        log.info("Получен список вещей с текстом: {} пользователя с id = {}, количество = {}.",
                 text, userId, items.size());
         return ResponseEntity.ok().body(items);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    @Validated
+    /**
+     * Добавление комментария к вещи
+     */
+    public ResponseEntity<CommentDto> saveComment(@Valid @RequestBody CommentDto commentDto,
+                                                  @RequestHeader("X-Sharer-User-Id") Long userId,
+                                                  @PathVariable Long itemId) {
+        commentDto = itemService.saveComment(commentDto, itemId, userId);
+        log.info("Добавлен новый комментарий: {} \n пользователем с id = {} для вещи с id = {}.",
+                commentDto, userId, itemId);
+        return ResponseEntity.ok(commentDto);
     }
 
 }

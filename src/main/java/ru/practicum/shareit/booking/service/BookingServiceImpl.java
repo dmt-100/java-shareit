@@ -47,10 +47,11 @@ public class BookingServiceImpl implements BookingService {
         List<Booking> bookings; // = new ArrayList<>();
         switch (state) {
             case ("ALL"):
-                bookings = bookingRepository.findByBookerIdOrderByStartDesc(userId);
+                bookings = bookingRepository.findByBookerIdOrderByEndDesc(userId);
                 break;
             case ("CURRENT"):
-                bookings = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, StatusBooking.APPROVED);
+                bookings = bookingRepository.findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(
+                        userId, LocalDateTime.now(), LocalDateTime.now());
                 break;
             case ("PAST"):
                 bookings = bookingRepository.findByBookerIdAndEndIsBefore(userId, LocalDateTime.now(),
@@ -61,10 +62,10 @@ public class BookingServiceImpl implements BookingService {
                         Sort.by(Sort.Direction.DESC, "start"));
                 break;
             case ("WAITING"):
-                bookings = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, StatusBooking.WAITING);
+                bookings = bookingRepository.findByBookerIdAndStatusOrderByEndDesc(userId, StatusBooking.WAITING);
                 break;
             case ("REJECTED"):
-                bookings = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, StatusBooking.REJECTED);
+                bookings = bookingRepository.findByBookerIdAndStatusOrderByEndDesc(userId, StatusBooking.REJECTED);
                 break;
             default:
                 throw new StatusBookingNotFoundException("Unknown state: " + state);
@@ -87,8 +88,9 @@ public class BookingServiceImpl implements BookingService {
                         .forEach(bookings::add);
                 break;
             case ("CURRENT"):
-                BooleanExpression byStatusApproved = QBooking.booking.status.eq(StatusBooking.APPROVED);
-                bookingRepository.findAll(byOwnerId.and(byStatusApproved),
+                BooleanExpression byStart = QBooking.booking.start.before(LocalDateTime.now());
+                BooleanExpression byEnd = QBooking.booking.end.after(LocalDateTime.now());
+                bookingRepository.findAll(byOwnerId.and(byStart).and(byEnd),
                                 Sort.by(Sort.Direction.DESC, "start"))
                         .forEach(bookings::add);
                 break;

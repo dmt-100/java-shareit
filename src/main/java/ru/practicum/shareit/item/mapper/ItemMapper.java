@@ -8,6 +8,7 @@ import ru.practicum.shareit.item.dto.ItemDtoOwner;
 import ru.practicum.shareit.item.dto.ItemDtoShort;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.item.model.Comment;
 
 import java.util.List;
 
@@ -16,7 +17,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-@Mapper
+@Mapper(uses = {CommentMapper.class})
 public interface ItemMapper {
 
     ItemMapper INSTANCE = Mappers.getMapper(ItemMapper.class);
@@ -28,7 +29,8 @@ public interface ItemMapper {
     @Mapping(target = "id", source = "item.id")
     @Mapping(target = "lastBooking", source = "lastBooking", qualifiedByName = "BookingToBookingDtoOwner")
     @Mapping(target = "nextBooking", source = "nextBooking", qualifiedByName = "BookingToBookingDtoOwner")
-    ItemDtoOwner toItemDtoOwner(Item item, Booking lastBooking, Booking nextBooking);
+    @Mapping(target = "comments", source = "comments")
+    ItemDtoOwner toItemDtoOwner(Item item, Booking lastBooking, Booking nextBooking, List<Comment> comments);
 
     @Named("BookingToBookingDtoOwner")
     static BookingDtoOwner toBookingDtoOwner(Booking booking) {

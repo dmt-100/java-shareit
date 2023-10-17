@@ -1,19 +1,21 @@
 package ru.practicum.shareit.item.service;
 
+import ru.practicum.shareit.booking.model.StatusBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.item.exception.ItemNotUpdateException;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.exception.*;
 import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.exception.ItemNotFoundException;
-import ru.practicum.shareit.item.exception.ItemNotSaveException;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.exception.ItemOtherOwnerException;
+import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.item.model.Comment;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -34,6 +36,7 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId) {
@@ -51,16 +54,19 @@ public class ItemServiceImpl implements ItemService {
         Booking lastBooking;
         Booking nextBooking;
         if (item.getOwner().getId().equals(userId)) {
-            lastBooking = bookingRepository.findFirstByItemIdAndEndIsBefore(itemId, LocalDateTime.now(),
-                    Sort.by(Sort.Direction.DESC, "start")).orElse(null);
-            nextBooking = bookingRepository.findFirstByItemIdAndEndIsAfter(itemId, LocalDateTime.now(),
+            lastBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsBefore(
+                    itemId, StatusBooking.APPROVED, LocalDateTime.now(),
+                    Sort.by(Sort.Direction.DESC, "end")).orElse(null);
+            nextBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsAfter(
+                    itemId, StatusBooking.APPROVED, LocalDateTime.now(),
                     Sort.by(Sort.Direction.ASC, "start")).orElse(null);
         } else {
             lastBooking = null;
             nextBooking = null;
         }
+        List<Comment> comments = commentRepository.findAllByItemId(itemId);
 
-        return ItemMapper.INSTANCE.toItemDtoOwner(item, lastBooking, nextBooking);
+        return ItemMapper.INSTANCE.toItemDtoOwner(item, lastBooking, nextBooking, comments);
     }
 
     @Transactional
@@ -115,9 +121,32 @@ public class ItemServiceImpl implements ItemService {
         return ItemMapper.INSTANCE.convertItemListToItemDTOList(itemRepository.search(text));
     }
 
+    @Transactional
+    @Override
+    public CommentDto saveComment(CommentDto commentDto, Long itemId, Long userId) {
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
+                new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
+        if (bookingRepository.isFindBooking(itemId, userId, LocalDateTime.now()) == null) {
+            throw new ValidationException("Ошибка!  Отзыв может оставить только тот пользователь, " +
+                    "который брал эту вещь в аренду, и только после окончания срока аренды.", 20002);
+        }
+
+        Comment comment = CommentMapper.INSTANCE.toComment(commentDto, item, user);
+        comment.setCreated(LocalDateTime.now());
+
+        try {
+            return CommentMapper.INSTANCE.toCommentDto(commentRepository.save(comment));
+        } catch (DataIntegrityViolationException e) {
+            throw new CommentNotSaveException("Комментарий не был создан: " + commentDto);
+        }
+    }
+
     private ItemDto validateItemDto(ItemDto itemDto) {
         if (itemDto.getAvailable() == null) {
-            throw new ValidationException("Ошибка! Статус доступности вещи для аренды не может быть пустым.", 20001);
+            throw new ValidationException("Ошибка! Статус доступности вещи для аренды " +
+                    "не может быть пустым.", 20001);
         }
         return itemDto;
     }

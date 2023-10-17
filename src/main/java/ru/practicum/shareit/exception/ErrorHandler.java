@@ -2,11 +2,8 @@ package ru.practicum.shareit.exception;
 
 import ru.practicum.shareit.booking.BookingController;
 import ru.practicum.shareit.booking.exception.*;
-import ru.practicum.shareit.item.exception.ItemNotUpdateException;
+import ru.practicum.shareit.item.exception.*;
 import ru.practicum.shareit.item.ItemController;
-import ru.practicum.shareit.item.exception.ItemNotFoundException;
-import ru.practicum.shareit.item.exception.ItemNotSaveException;
-import ru.practicum.shareit.item.exception.ItemOtherOwnerException;
 import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.exception.UserNotSaveException;
@@ -39,8 +36,8 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler({UserNotFoundException.class, ItemNotFoundException.class,
-            BookingNotFoundException.class, BookingOtherBookerException.class,
-            ItemOtherOwnerException.class})
+            BookingNotFoundException.class, CommentNotSaveException.class,
+            BookingOtherBookerException.class, ItemOtherOwnerException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundException(final RuntimeException e) {
         log.warn(e.getMessage());

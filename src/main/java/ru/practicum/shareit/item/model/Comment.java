@@ -2,8 +2,8 @@ package ru.practicum.shareit.item.model;
 
 import ru.practicum.shareit.user.model.User;
 
+import java.time.LocalDateTime;
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,18 +18,18 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // уникальный идентификатор комментария
 
-    @NotNull
     @Column(nullable = false)
     private String text; // текст комментария
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
-    private Item item; // вещь, на которую автор пишет коммент
+    private Item item; //  вещь, к которой относится комментарий
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
-    private User author; // автор, который оставляет коммент
+    private User author; //  автор комментария
+
+    @Column
+    private LocalDateTime created; // дата создания комментария
 
 }
