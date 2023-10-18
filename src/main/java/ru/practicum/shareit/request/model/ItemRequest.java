@@ -5,9 +5,9 @@ import ru.practicum.shareit.user.model.User;
 import java.time.Instant;
 import javax.persistence.*;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Setter;
 
 /**
  * TODO Sprint add-item-requests.
@@ -16,8 +16,9 @@ import lombok.ToString;
 // класс, отвечающий за запрос вещи
 @Entity
 @Table(name = "requests", schema = "public")
-@Data
 @NoArgsConstructor
+@Getter
+@Setter
 public class ItemRequest {
 
     @Id
@@ -29,7 +30,6 @@ public class ItemRequest {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requestor_id", nullable = false)
-    @ToString.Exclude
     private User requestor; // пользователь, создавший запрос
 
     @Column

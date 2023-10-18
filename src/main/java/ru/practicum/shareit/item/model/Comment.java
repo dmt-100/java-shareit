@@ -5,13 +5,15 @@ import ru.practicum.shareit.user.model.User;
 import java.time.LocalDateTime;
 import javax.persistence.*;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "comments", schema = "public")
-@Data
 @NoArgsConstructor
+@Getter
+@Setter
 public class Comment {
 
     @Id

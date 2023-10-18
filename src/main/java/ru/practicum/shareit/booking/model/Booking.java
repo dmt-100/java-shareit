@@ -6,14 +6,15 @@ import ru.practicum.shareit.user.model.User;
 import java.time.LocalDateTime;
 import javax.persistence.*;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Setter;
 
 @Entity
 @Table(name = "bookings", schema = "public")
-@Data
 @NoArgsConstructor
+@Getter
+@Setter
 public class Booking {
 
     @Id
@@ -28,12 +29,10 @@ public class Booking {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
-    @ToString.Exclude
     private Item item; // вещь, которую пользователь бронирует
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booker_id", nullable = false)
-    @ToString.Exclude
     private User booker; // пользователь, который осуществляет бронирование
 
     @Enumerated(EnumType.STRING)

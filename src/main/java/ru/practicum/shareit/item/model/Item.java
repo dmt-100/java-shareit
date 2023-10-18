@@ -5,14 +5,15 @@ import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Setter;
 
 @Entity
 @Table(name = "items", schema = "public")
-@Data
 @NoArgsConstructor
+@Getter
+@Setter
 public class Item {
 
     @Id
@@ -30,7 +31,6 @@ public class Item {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
-    @ToString.Exclude
     private User owner; // владелец вещи
 
     @OneToOne
