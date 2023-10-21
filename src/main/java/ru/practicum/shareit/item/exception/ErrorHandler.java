@@ -1,8 +1,7 @@
-package ru.practicum.shareit.exception;
+package ru.practicum.shareit.item.exception;
 
 import ru.practicum.shareit.booking.BookingController;
 import ru.practicum.shareit.booking.exception.*;
-import ru.practicum.shareit.item.exception.*;
 import ru.practicum.shareit.item.ItemController;
 import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.exception.UserNotFoundException;

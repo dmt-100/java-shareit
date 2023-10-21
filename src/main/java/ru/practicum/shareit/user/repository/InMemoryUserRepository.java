@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 public class InMemoryUserRepository implements UserRepositoryOld {
 
     Map<Long, User> users = new HashMap<>();
-    public static long userId = 0;  // сквозной счетчик пользователей
+    private static long userId = 0;  // сквозной счетчик пользователей
 
     @Override
     public List<UserDto> getAllUsers() {

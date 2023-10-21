@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
 public class InMemoryItemRepository implements ItemRepositoryOld {
 
     Map<Long, List<Item>> items = new HashMap<>();
-    public static long itemId = 0;  // сквозной счетчик вещей
+    private long itemId = 0;  // сквозной счетчик вещей
 
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId) {
@@ -91,7 +91,7 @@ public class InMemoryItemRepository implements ItemRepositoryOld {
                 .collect(Collectors.toList());
     }
 
-    private static Long getNextId() {
+    private Long getNextId() {
         return ++itemId;
     }
 

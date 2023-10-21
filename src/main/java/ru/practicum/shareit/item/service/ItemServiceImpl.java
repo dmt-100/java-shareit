@@ -3,10 +3,10 @@ package ru.practicum.shareit.item.service;
 import ru.practicum.shareit.booking.model.StatusBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.exception.*;
-import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.CommentMapper;
+import ru.practicum.shareit.item.exception.*;
+import ru.practicum.shareit.item.exception.ValidationException;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
@@ -49,7 +49,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto getItemById(Long itemId, Long userId) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
-                new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
+                new ItemNotFoundException(String.format("Вещь с идентификатором " + itemId + " не найдена.")));
 
         Booking lastBooking;
         Booking nextBooking;
@@ -74,13 +74,13 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto saveItem(ItemDto itemDto, Long userId) {
         ItemDto itemDtoNew = validateItemDto(itemDto);
         User user = userRepository.findById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
+                new UserNotFoundException(String.format("Пользователь с id = " + userId + " не найден.")));
         Item item = ItemMapper.INSTANCE.toItem(itemDto, user);
 
         try {
             return ItemMapper.INSTANCE.toItemDto(itemRepository.save(item));
         } catch (DataIntegrityViolationException e) {
-            throw new ItemNotSaveException("Вещь не была создана: " + itemDtoNew);
+            throw new ItemNotSaveException(String.format("Вещь не была создана: " + itemDtoNew));
         }
     }
 
@@ -88,10 +88,10 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto updateItem(Long itemId, ItemDto itemDto, Long userId) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
-                new ItemNotFoundException("Вещь с id = " + itemId + "не найдена."));
+                new ItemNotFoundException(String.format("Вещь с id = " + itemId + "не найдена.")));
         if (!item.getOwner().getId().equals(userId)) {
-            throw new ItemOtherOwnerException(String.format("Пользователь с id = " + userId +
-                    " не является владельцем вещи: " + itemDto));
+            throw new ItemOtherOwnerException(String.format(String.format("Пользователь с id = " + userId +
+                    " не является владельцем вещи: " + itemDto)));
         }
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));

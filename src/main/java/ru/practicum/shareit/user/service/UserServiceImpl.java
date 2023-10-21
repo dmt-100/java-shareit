@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getUserById(Long userId) {
         return UserMapper.INSTANCE.toUserDto(userRepository.findById(userId).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден.")));
+                new UserNotFoundException(String.format("Пользователь с идентификатором " + userId + " не найден."))));
     }
 
     @Transactional
@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
             User user = userRepository.save(UserMapper.INSTANCE.toUser(userDto));
             return UserMapper.INSTANCE.toUserDto(user);
         } catch (DataIntegrityViolationException e) {
-            throw new UserNotSaveException("Пользователь не был создан: " + userDto);
+            throw new UserNotSaveException(String.format("Пользователь не был создан: " + userDto));
         }
     }
 
@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
         User user = userRepository.findById(userId).orElseThrow(() ->
-                new UserNotUpdateException("Пользователь с id = " + userId + " не найден."));
+                new UserNotUpdateException(String.format("Пользователь с id = " + userId + " не найден.")));
 
         if (userDto.getEmail() != null) {
             user.setEmail(userDto.getEmail());
@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
         try {
             return UserMapper.INSTANCE.toUserDto(userRepository.saveAndFlush(user));
         } catch (DataIntegrityViolationException e) {
-            throw new UserNotUpdateException("Пользователь с id = " + userId + " не был обновлён: " + userDto);
+            throw new UserNotUpdateException(String.format("Пользователь с id = " + userId + " не был обновлён: " + userDto));
         }
     }
 

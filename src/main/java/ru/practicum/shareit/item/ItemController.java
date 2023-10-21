@@ -18,72 +18,72 @@ import org.springframework.http.ResponseEntity;
 @RequiredArgsConstructor
 @Slf4j
 public class ItemController {
-
+    private final String X_SHARER_USER_ID = "X-Sharer-User-Id";
     private final ItemService itemService;
 
-    @GetMapping
     /**
      * Просмотр владельцем списка всех его вещей
      */
-    public ResponseEntity<List<ItemDto>> getAllItemsByUser(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    @GetMapping
+    public ResponseEntity<List<ItemDto>> getAllItemsByUser(@RequestHeader(X_SHARER_USER_ID) Long userId) {
         List<ItemDto> items = itemService.getAllItemsByUser(userId);
         log.info("Получен список вещей пользователя с id = {}, количество = {}.", userId, items.size());
         return ResponseEntity.ok().body(items);
     }
 
-    @GetMapping("/{itemId}")
     /**
      * Получение вещи по id с комментариями
      */
+    @GetMapping("/{itemId}")
     public ResponseEntity<ItemDto> getItemById(@PathVariable Long itemId,
-                                               @RequestHeader("X-Sharer-User-Id") Long userId) {
+                                               @RequestHeader(X_SHARER_USER_ID) Long userId) {
         ItemDto itemDto = itemService.getItemById(itemId, userId);
         log.info("Получена вещь с id = {}.", itemId);
         return ResponseEntity.ok(itemDto);
     }
 
-    @PostMapping
-    @Validated
     /**
      * Добавление новой вещи
      */
+    @PostMapping
+    @Validated
     public ResponseEntity<ItemDto> saveItem(@Valid @RequestBody ItemDto itemDto,
-                                            @RequestHeader("X-Sharer-User-Id") Long userId) {
+                                            @RequestHeader(X_SHARER_USER_ID) Long userId) {
         itemDto = itemService.saveItem(itemDto, userId);
         log.info("Добавлена новая вещь: {}.", itemDto);
         return ResponseEntity.ok(itemDto);
     }
 
-    @PatchMapping("/{itemId}")
     /**
      * Редактирование вещи
      */
+    @PatchMapping("/{itemId}")
     public ResponseEntity<ItemDto> updateItem(@PathVariable Long itemId, @RequestBody ItemDto itemDto,
-                                              @RequestHeader("X-Sharer-User-Id") Long userId) {
+                                              @RequestHeader(X_SHARER_USER_ID) Long userId) {
         itemDto = itemService.updateItem(itemId, itemDto, userId);
         log.info("Обновлена вещь: {}.", itemDto);
         return ResponseEntity.ok(itemDto);
     }
 
-    @GetMapping("/search")
     /**
      * Поиск вещи потенциальным арендатором
      */
+    @GetMapping("/search")
     public ResponseEntity<List<ItemDto>> findItems(@RequestParam String text,
-                                                   @RequestHeader("X-Sharer-User-Id") Long userId) {
+                                                   @RequestHeader(X_SHARER_USER_ID) Long userId) {
         List<ItemDto> items = itemService.findItems(text, userId);
         log.info("Получен список вещей с текстом: {} пользователя с id = {}, количество = {}.",
                 text, userId, items.size());
         return ResponseEntity.ok().body(items);
     }
 
-    @PostMapping("/{itemId}/comment")
-    @Validated
     /**
      * Добавление комментария к вещи
      */
+    @PostMapping("/{itemId}/comment")
+    @Validated
     public ResponseEntity<CommentDto> saveComment(@Valid @RequestBody CommentDto commentDto,
-                                                  @RequestHeader("X-Sharer-User-Id") Long userId,
+                                                  @RequestHeader(X_SHARER_USER_ID) Long userId,
                                                   @PathVariable Long itemId) {
         commentDto = itemService.saveComment(commentDto, itemId, userId);
         log.info("Добавлен новый комментарий: {} \n пользователем с id = {} для вещи с id = {}.",
