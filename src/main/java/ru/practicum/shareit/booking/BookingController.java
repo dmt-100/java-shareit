@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(path = "/bookings")
 @Slf4j
 public class BookingController {
-    private final String X_SHARER_USER_ID = "X-Sharer-User-Id";
+    private final String xSharerUserId = "X-Sharer-User-Id";
     private final BookingService bookingService;
 
     /**
@@ -26,7 +26,7 @@ public class BookingController {
      */
     @GetMapping
     public ResponseEntity<List<BookingOutDto>> getAllBookingsByUser(
-            @RequestHeader(X_SHARER_USER_ID) Long userId,
+            @RequestHeader(xSharerUserId) Long userId,
             @RequestParam(defaultValue = "ALL") String state) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsByUser(userId, state);
         log.info("Получен список всех бронирований текущего пользователя с id = {}, количество = {}.",
@@ -39,7 +39,7 @@ public class BookingController {
      */
     @GetMapping("/owner")
     public ResponseEntity<List<BookingOutDto>> getAllBookingsAllItemsByOwner(
-            @RequestHeader(X_SHARER_USER_ID) Long userId,
+            @RequestHeader(xSharerUserId) Long userId,
             @RequestParam(defaultValue = "ALL") String state) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsAllItemsByOwner(userId, state);
         log.info("Получен список всех бронирований для всех вещей текущего пользователя с id = {}, " +
@@ -52,7 +52,7 @@ public class BookingController {
      */
     @GetMapping("/{bookingId}")
     public ResponseEntity<BookingOutDto> getBookingById(@PathVariable Long bookingId,
-                                                        @RequestHeader(X_SHARER_USER_ID) Long userId) {
+                                                        @RequestHeader(xSharerUserId) Long userId) {
         BookingOutDto bookingOutDto = bookingService.getBookingById(userId, bookingId);
         log.info("Получено бронирование с id = {}.", bookingId);
         return ResponseEntity.ok(bookingOutDto);
@@ -64,7 +64,7 @@ public class BookingController {
     @PostMapping
     @Validated
     public ResponseEntity<BookingOutDto> saveBooking(@Valid @RequestBody BookingInDto bookingInDto,
-                                                     @RequestHeader(X_SHARER_USER_ID) Long userId) {
+                                                     @RequestHeader(xSharerUserId) Long userId) {
         BookingOutDto bookingOutDto = bookingService.saveBooking(bookingInDto, userId);
         log.info("Добавлен новый запрос на бронирование: {}", bookingOutDto);
         return ResponseEntity.ok(bookingOutDto);
@@ -75,7 +75,7 @@ public class BookingController {
      */
     @PatchMapping("/{bookingId}")
     public ResponseEntity<BookingOutDto> updateItem(@PathVariable Long bookingId, @RequestParam Boolean approved,
-                                                    @RequestHeader(X_SHARER_USER_ID) Long userId) {
+                                                    @RequestHeader(xSharerUserId) Long userId) {
         BookingOutDto bookingOutDto = bookingService.updateBooking(bookingId, approved, userId);
         log.info("Обновлено бронирование: {}.", bookingOutDto);
         return ResponseEntity.ok(bookingOutDto);
