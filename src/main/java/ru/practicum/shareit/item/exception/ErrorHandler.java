@@ -1,10 +1,8 @@
-package ru.practicum.shareit.exception;
+package ru.practicum.shareit.item.exception;
 
-import ru.practicum.shareit.item.exception.ItemNotUpdateException;
+import ru.practicum.shareit.booking.BookingController;
+import ru.practicum.shareit.booking.exception.*;
 import ru.practicum.shareit.item.ItemController;
-import ru.practicum.shareit.item.exception.ItemNotFoundException;
-import ru.practicum.shareit.item.exception.ItemNotSaveException;
-import ru.practicum.shareit.item.exception.ItemOtherOwnerException;
 import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.exception.UserNotSaveException;
@@ -22,20 +20,23 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {UserController.class, ItemController.class})
+@RestControllerAdvice(assignableTypes = {UserController.class, ItemController.class,
+        BookingController.class})
 @Slf4j
 public class ErrorHandler {
 
-    @ExceptionHandler
+    @ExceptionHandler({ValidationException.class, StatusBookingNotFoundException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleValidationException(final ValidationException e) {
+    public ErrorResponse handleValidationException(final RuntimeException e) {
         log.warn(e.getMessage());
         return new ErrorResponse(
                 e.getMessage()
         );
     }
 
-    @ExceptionHandler({UserNotFoundException.class, ItemNotFoundException.class})
+    @ExceptionHandler({UserNotFoundException.class, ItemNotFoundException.class,
+            BookingNotFoundException.class, CommentNotSaveException.class,
+            BookingOtherBookerException.class, ItemOtherOwnerException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundException(final RuntimeException e) {
         log.warn(e.getMessage());
@@ -45,18 +46,10 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler({UserNotSaveException.class, UserNotUpdateException.class,
-            ItemNotSaveException.class, ItemNotUpdateException.class})
+            ItemNotSaveException.class, ItemNotUpdateException.class,
+            BookingNotSaveException.class, BookingNotUpdateException.class})
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleNotSaveAndUpdate(final RuntimeException e) {
-        log.warn(e.getMessage());
-        return new ErrorResponse(
-                e.getMessage()
-        );
-    }
-
-    @ExceptionHandler({ItemOtherOwnerException.class})
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse handleItemOtherOwner(final RuntimeException e) {
         log.warn(e.getMessage());
         return new ErrorResponse(
                 e.getMessage()

@@ -1,8 +1,8 @@
 package ru.practicum.shareit.item.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.NotEmpty;
+
+import lombok.Data;
 
 @Data
 public class ItemDto {
@@ -13,6 +13,5 @@ public class ItemDto {
     @NotEmpty(message = "Ошибка! Развёрнутое описание вещи не может быть пустым.")
     private String description;
     private Boolean available;
-    private Long request;
 
 }

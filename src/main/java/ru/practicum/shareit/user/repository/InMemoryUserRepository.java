@@ -8,19 +8,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
-import org.mapstruct.factory.Mappers;
 
 @Repository
-public class InMemoryUserRepository implements UserRepository {
+public class InMemoryUserRepository implements UserRepositoryOld {
 
     Map<Long, User> users = new HashMap<>();
-    public static long userId = 0;
-    private final UserMapper mapper = Mappers.getMapper(UserMapper.class);
+    private static long userId = 0;  // сквозной счетчик пользователей
 
     @Override
     public List<UserDto> getAllUsers() {
         return users.values().stream()
-                .map(mapper::toUserDto)
+                .map(UserMapper.INSTANCE::toUserDto)
                 .collect(Collectors.toList());
     }
 
@@ -35,7 +33,7 @@ public class InMemoryUserRepository implements UserRepository {
     public Optional<UserDto> getUserDtoById(Long userId) {
         return users.values().stream()
                 .filter(user -> user.getId().equals(userId))
-                .map(mapper::toUserDto)
+                .map(UserMapper.INSTANCE::toUserDto)
                 .findFirst();
 
     }
@@ -45,11 +43,11 @@ public class InMemoryUserRepository implements UserRepository {
         if (validateEmail(userDto.getEmail()) > 0) {
             return Optional.empty();
         }
-        User user = mapper.toUser(userDto);
+        User user = UserMapper.INSTANCE.toUser(userDto);
 
         user.setId(getNextId());
         users.put(user.getId(), user);
-        return Optional.of(mapper.toUserDto(user));
+        return Optional.of(UserMapper.INSTANCE.toUserDto(user));
     }
 
     @Override
@@ -70,7 +68,7 @@ public class InMemoryUserRepository implements UserRepository {
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
-        return Optional.of(mapper.toUserDto(user));
+        return Optional.of(UserMapper.INSTANCE.toUserDto(user));
     }
 
     @Override

@@ -11,19 +11,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
-import org.mapstruct.factory.Mappers;
 
 @Repository
-public class InMemoryItemRepository implements ItemRepository {
+public class InMemoryItemRepository implements ItemRepositoryOld {
 
     Map<Long, List<Item>> items = new HashMap<>();
     private long itemId = 0;  // сквозной счетчик вещей
-    private final ItemMapper mapper = Mappers.getMapper(ItemMapper.class);
 
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId) {
         return items.get(userId).stream()
-                .map(mapper::toItemDto)
+                .map(ItemMapper.INSTANCE::toItemDto)
                 .collect(Collectors.toList());
     }
 
@@ -40,13 +38,13 @@ public class InMemoryItemRepository implements ItemRepository {
         return items.values().stream()
                 .flatMap(Collection::stream)
                 .filter(item -> item.getId().equals(itemId))
-                .map(mapper::toItemDto)
+                .map(ItemMapper.INSTANCE::toItemDto)
                 .findFirst();
     }
 
     @Override
     public Optional<ItemDto> saveItem(ItemDto itemDto, User user) {
-        Item item = mapper.toItem(itemDto, user);
+        Item item = ItemMapper.INSTANCE.toItem(itemDto, user);
         item.setId(getNextId());
 
         items.compute(item.getOwner().getId(), (userId, userItems) -> {
@@ -57,16 +55,16 @@ public class InMemoryItemRepository implements ItemRepository {
             return userItems;
         });
 
-        return Optional.of(mapper.toItemDto(item));
+        return Optional.of(ItemMapper.INSTANCE.toItemDto(item));
     }
 
     @Override
     public Optional<ItemDto> updateItem(Long itemId, ItemDto itemDto, User user) {
         Item item = getItemById(itemId).orElseThrow(() ->
-                new ItemNotFoundException(String.format("Вещь с id = %d не найдена.", itemId)));
+                new ItemNotFoundException("Вещь с id = " + itemId + "не найдена."));
         if (!item.getOwner().equals(user)) {
-            throw new ItemOtherOwnerException(String.format("Пользователь с id = %d не является владельцем вещи: %s",
-                    user.getId(), itemDto));
+            throw new ItemOtherOwnerException(String.format("Пользователь с id = " + user.getId() +
+                    " не является владельцем вещи: " + itemDto));
         }
 
         if (itemDto.getName() != null) {
@@ -79,7 +77,7 @@ public class InMemoryItemRepository implements ItemRepository {
             item.setAvailable(itemDto.getAvailable());
         }
 
-        return Optional.of(mapper.toItemDto(item));
+        return Optional.of(ItemMapper.INSTANCE.toItemDto(item));
     }
 
     @Override
@@ -89,7 +87,7 @@ public class InMemoryItemRepository implements ItemRepository {
                 .filter(item -> item.getAvailable().equals(true))
                 .filter(item -> (item.getName().toLowerCase().contains(text.toLowerCase()) ||
                         item.getDescription().toLowerCase().contains(text.toLowerCase())))
-                .map(mapper::toItemDto)
+                .map(ItemMapper.INSTANCE::toItemDto)
                 .collect(Collectors.toList());
     }
 
