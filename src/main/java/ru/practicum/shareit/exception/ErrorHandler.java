@@ -1,8 +1,9 @@
-package ru.practicum.shareit.item.exception;
+package ru.practicum.shareit.exception;
 
 import ru.practicum.shareit.booking.BookingController;
 import ru.practicum.shareit.booking.exception.*;
 import ru.practicum.shareit.item.ItemController;
+import ru.practicum.shareit.item.exception.*;
 import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.exception.UserNotSaveException;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class ErrorHandler {
 
-    @ExceptionHandler({ValidationException.class, StatusBookingNotFoundException.class})
+    @ExceptionHandler({ValidationException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidationException(final RuntimeException e) {
         log.warn(e.getMessage());

@@ -6,9 +6,10 @@ import ru.practicum.shareit.booking.exception.*;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.QBooking;
+import ru.practicum.shareit.booking.model.StateBooking;
 import ru.practicum.shareit.booking.model.StatusBooking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.item.exception.ValidationException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.exception.ItemNotFoundException;
 import ru.practicum.shareit.item.exception.ItemOtherOwnerException;
 import ru.practicum.shareit.item.mapper.ItemMapper;
@@ -40,23 +41,85 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
 
     @Override
-    public List<BookingOutDto> getAllBookingsByUser(Long userId, String state) {
+    public List<BookingOutDto> getAllBookingsByUser(Long userId, StateBooking state) {
 
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 
-        return BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(
-                getAllBookingsByUserInner(userId, state));
+        List<Booking> bookings = new ArrayList<>();
+        switch (state) {
+            case ALL:
+                bookings = bookingRepository.findByBookerIdOrderByEndDesc(userId);
+                break;
+            case CURRENT:
+                bookings = bookingRepository.findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(
+                        userId, LocalDateTime.now(), LocalDateTime.now());
+                break;
+            case PAST:
+                bookings = bookingRepository.findByBookerIdAndEndIsBefore(userId, LocalDateTime.now(),
+                        Sort.by(Sort.Direction.DESC, "start"));
+                break;
+            case FUTURE:
+                bookings = bookingRepository.findByBookerIdAndEndIsAfter(userId, LocalDateTime.now(),
+                        Sort.by(Sort.Direction.DESC, "start"));
+                break;
+            case WAITING:
+                bookings = bookingRepository.findByBookerIdAndStatusOrderByEndDesc(userId, StatusBooking.WAITING);
+                break;
+            case REJECTED:
+                bookings = bookingRepository.findByBookerIdAndStatusOrderByEndDesc(userId, StatusBooking.REJECTED);
+                break;
+        }
+
+        return BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(bookings);
     }
 
     @Override
-    public List<BookingOutDto> getAllBookingsAllItemsByOwner(Long userId, String state) {
+    public List<BookingOutDto> getAllBookingsAllItemsByOwner(Long userId, StateBooking state) {
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 
+        List<Booking> bookings = new ArrayList<>();
         BooleanExpression byOwnerId = QItem.item.owner.id.eq(userId);
-        return BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(
-                getAllBookingsAllItemsByOwnerInner(state, byOwnerId));
+        switch (state) {
+            case ALL:
+                bookingRepository.findAll(byOwnerId,
+                                Sort.by(Sort.Direction.DESC, "start"))
+                        .forEach(bookings::add);
+                break;
+            case CURRENT:
+                BooleanExpression byStart = QBooking.booking.start.before(LocalDateTime.now());
+                BooleanExpression byEnd = QBooking.booking.end.after(LocalDateTime.now());
+                bookingRepository.findAll(byOwnerId.and(byStart).and(byEnd),
+                                Sort.by(Sort.Direction.DESC, "start"))
+                        .forEach(bookings::add);
+                break;
+            case PAST:
+                BooleanExpression byBeforeEnd = QBooking.booking.end.before(LocalDateTime.now());
+                bookingRepository.findAll(byOwnerId.and(byBeforeEnd),
+                                Sort.by(Sort.Direction.DESC, "start"))
+                        .forEach(bookings::add);
+                break;
+            case FUTURE:
+                BooleanExpression byAfterEnd = QBooking.booking.end.after(LocalDateTime.now());
+                bookingRepository.findAll(byOwnerId.and(byAfterEnd),
+                                Sort.by(Sort.Direction.DESC, "start"))
+                        .forEach(bookings::add);
+                break;
+            case WAITING:
+                BooleanExpression byStatusWaiting = QBooking.booking.status.eq(StatusBooking.WAITING);
+                bookingRepository.findAll(byOwnerId.and(byStatusWaiting),
+                                Sort.by(Sort.Direction.DESC, "start"))
+                        .forEach(bookings::add);
+                break;
+            case REJECTED:
+                BooleanExpression byStatusRejected = QBooking.booking.status.eq(StatusBooking.REJECTED);
+                bookingRepository.findAll(byOwnerId.and(byStatusRejected),
+                                Sort.by(Sort.Direction.DESC, "start"))
+                        .forEach(bookings::add);
+                break;
+        }
+        return BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(bookings);
     }
 
     @Override
@@ -141,80 +204,4 @@ public class BookingServiceImpl implements BookingService {
         return bookingInDto;
     }
 
-    private List<Booking> getAllBookingsAllItemsByOwnerInner(String state, BooleanExpression byOwnerId) {
-        LocalDateTime lDT = LocalDateTime.now();
-        List<Booking> bookings = new ArrayList<>();
-        switch (state) {
-            case ("ALL"):
-                bookingRepository.findAll(byOwnerId,
-                                Sort.by(Sort.Direction.DESC, "start"))
-                        .forEach(bookings::add);
-                break;
-            case ("CURRENT"):
-                BooleanExpression byStart = QBooking.booking.start.before(lDT);
-                BooleanExpression byEnd = QBooking.booking.end.after(lDT);
-                bookingRepository.findAll(byOwnerId.and(byStart).and(byEnd),
-                                Sort.by(Sort.Direction.DESC, "start"))
-                        .forEach(bookings::add);
-                break;
-            case ("PAST"):
-                BooleanExpression byBeforeEnd = QBooking.booking.end.before(lDT);
-                bookingRepository.findAll(byOwnerId.and(byBeforeEnd),
-                                Sort.by(Sort.Direction.DESC, "start"))
-                        .forEach(bookings::add);
-                break;
-            case ("FUTURE"):
-                BooleanExpression byAfterEnd = QBooking.booking.end.after(lDT);
-                bookingRepository.findAll(byOwnerId.and(byAfterEnd),
-                                Sort.by(Sort.Direction.DESC, "start"))
-                        .forEach(bookings::add);
-                break;
-            case ("WAITING"):
-                BooleanExpression byStatusWaiting = QBooking.booking.status.eq(StatusBooking.WAITING);
-                bookingRepository.findAll(byOwnerId.and(byStatusWaiting),
-                                Sort.by(Sort.Direction.DESC, "start"))
-                        .forEach(bookings::add);
-                break;
-            case ("REJECTED"):
-                BooleanExpression byStatusRejected = QBooking.booking.status.eq(StatusBooking.REJECTED);
-                bookingRepository.findAll(byOwnerId.and(byStatusRejected),
-                                Sort.by(Sort.Direction.DESC, "start"))
-                        .forEach(bookings::add);
-                break;
-            default:
-                throw new StatusBookingNotFoundException("Unknown state: " + state);
-        }
-        return bookings;
-    }
-
-    private List<Booking> getAllBookingsByUserInner(Long userId, String state) {
-        LocalDateTime lDT = LocalDateTime.now();
-        List<Booking> bookings;
-        switch (state) {
-            case ("ALL"):
-                bookings = bookingRepository.findByBookerIdOrderByEndDesc(userId);
-                break;
-            case ("CURRENT"):
-                bookings = bookingRepository.findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(
-                        userId, lDT, lDT);
-                break;
-            case ("PAST"):
-                bookings = bookingRepository.findByBookerIdAndEndIsBefore(userId, lDT,
-                        Sort.by(Sort.Direction.DESC, "start"));
-                break;
-            case ("FUTURE"):
-                bookings = bookingRepository.findByBookerIdAndEndIsAfter(userId, lDT,
-                        Sort.by(Sort.Direction.DESC, "start"));
-                break;
-            case ("WAITING"):
-                bookings = bookingRepository.findByBookerIdAndStatusOrderByEndDesc(userId, StatusBooking.WAITING);
-                break;
-            case ("REJECTED"):
-                bookings = bookingRepository.findByBookerIdAndStatusOrderByEndDesc(userId, StatusBooking.REJECTED);
-                break;
-            default:
-                throw new StatusBookingNotFoundException("Unknown state: " + state);
-        }
-        return bookings;
-    }
 }

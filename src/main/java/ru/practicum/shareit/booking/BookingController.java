@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking;
 
 import ru.practicum.shareit.booking.dto.BookingInDto;
 import ru.practicum.shareit.booking.dto.BookingOutDto;
+import ru.practicum.shareit.booking.model.StateBooking;
 import ru.practicum.shareit.booking.service.BookingService;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<List<BookingOutDto>> getAllBookingsByUser(
             @RequestHeader(xSharerUserId) Long userId,
-            @RequestParam(defaultValue = "ALL") String state) {
+            @RequestParam(defaultValue = "ALL") StateBooking state) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsByUser(userId, state);
         log.info("Получен список всех бронирований текущего пользователя с id = {}, количество = {}.",
                 userId, bookingOutDtos.size());
@@ -40,7 +41,7 @@ public class BookingController {
     @GetMapping("/owner")
     public ResponseEntity<List<BookingOutDto>> getAllBookingsAllItemsByOwner(
             @RequestHeader(xSharerUserId) Long userId,
-            @RequestParam(defaultValue = "ALL") String state) {
+            @RequestParam(defaultValue = "ALL") StateBooking state) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsAllItemsByOwner(userId, state);
         log.info("Получен список всех бронирований для всех вещей текущего пользователя с id = {}, " +
                 "количество = {}.", userId, bookingOutDtos.size());
