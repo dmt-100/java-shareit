@@ -1,9 +1,11 @@
 package ru.practicum.shareit.exception;
 
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.shareit.booking.BookingController;
 import ru.practicum.shareit.booking.exception.*;
 import ru.practicum.shareit.item.ItemController;
 import ru.practicum.shareit.item.exception.*;
+import ru.practicum.shareit.request.exception.ItemRequestNotFoundException;
 import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.exception.UserNotSaveException;
@@ -35,31 +37,27 @@ public class ErrorHandler {
         );
     }
 
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMethodArgumentTypeMismatchException(final RuntimeException e) {
+        String message;
+        if (((MethodArgumentTypeMismatchException) e).getName().equals("state")) {
+            message = "Unknown state: " + ((MethodArgumentTypeMismatchException) e).getValue();
+        } else {
+            message = e.getMessage();
+        }
+        log.warn(message);
+        return new ErrorResponse(
+                message
+        );
+    }
+
     @ExceptionHandler({UserNotFoundException.class, ItemNotFoundException.class,
             BookingNotFoundException.class, CommentNotSaveException.class,
-            BookingOtherBookerException.class, ItemOtherOwnerException.class})
+            BookingOtherBookerException.class, ItemOtherOwnerException.class,
+            ItemRequestNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundException(final RuntimeException e) {
-        log.warn(e.getMessage());
-        return new ErrorResponse(
-                e.getMessage()
-        );
-    }
-
-    @ExceptionHandler({UserNotSaveException.class, UserNotUpdateException.class,
-            ItemNotSaveException.class, ItemNotUpdateException.class,
-            BookingNotSaveException.class, BookingNotUpdateException.class})
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleNotSaveAndUpdate(final RuntimeException e) {
-        log.warn(e.getMessage());
-        return new ErrorResponse(
-                e.getMessage()
-        );
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHttpMessageNotReadableException(final HttpMessageNotReadableException e) {
         log.warn(e.getMessage());
         return new ErrorResponse(
                 e.getMessage()

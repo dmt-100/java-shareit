@@ -1,10 +1,12 @@
 package ru.practicum.shareit.booking.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.StatusBooking;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Sort;
@@ -16,17 +18,18 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long>, QuerydslPredicateExecutor<Booking> {
 
-    List<Booking> findByBookerIdOrderByEndDesc(Long bookerId);
+    Page<Booking> findByBookerIdOrderByEndDesc(Long bookerId, Pageable page);
 
-    List<Booking> findByBookerIdAndStatusOrderByEndDesc(Long bookerId, StatusBooking status);
+    Page<Booking> findByBookerIdAndStatusOrderByEndDesc(
+            Long bookerId, StatusBooking status, Pageable page);
 
-    List<Booking> findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(Long bookerId,
-                                                                            LocalDateTime start,
-                                                                            LocalDateTime end);
+    Page<Booking> findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(
+            Long bookerId, LocalDateTime start, LocalDateTime end, Pageable page);
 
-    List<Booking> findByBookerIdAndEndIsBefore(Long bookerId, LocalDateTime end, Sort sort);
+    Page<Booking> findByBookerIdAndEndIsBefore(Long bookerId, LocalDateTime end, PageRequest page);
 
-    List<Booking> findByBookerIdAndEndIsAfter(Long bookerId, LocalDateTime end, Sort sort);
+    Page<Booking> findByBookerIdAndEndIsAfter(
+            Long bookerId, LocalDateTime end, PageRequest page);
 
     Optional<Booking> findFirstByItemIdAndStatusAndStartIsBefore(Long itemId, StatusBooking status,
                                                                  LocalDateTime end, Sort sort);

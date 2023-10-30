@@ -33,7 +33,7 @@ public class Item {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner; // владелец вещи
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_id")
     private ItemRequest request;
     // если вещь была создана по запросу другого пользователя,
