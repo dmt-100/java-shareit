@@ -23,7 +23,7 @@ public class BookingController {
     private final BookingService bookingService;
 
     /**
-     * Получение списка всех бронирований текущего пользователя
+     * Получение списка всех бронирований пользователя
      */
     @GetMapping
     public ResponseEntity<List<BookingOutDto>> getAllBookingsByUser(
@@ -38,7 +38,7 @@ public class BookingController {
     }
 
     /**
-     * Получение списка бронирований для всех вещей текущего пользователя
+     * Получение списка бронирований для всех вещей владельца
      */
     @GetMapping("/owner")
     public ResponseEntity<List<BookingOutDto>> getAllBookingsAllItemsByOwner(
@@ -47,7 +47,7 @@ public class BookingController {
             @RequestParam(defaultValue = "0") Integer from,
             @RequestParam(defaultValue = "10") Integer size) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsAllItemsByOwner(userId, state, from, size);
-        log.info("Получен список всех бронирований для всех вещей текущего пользователя с id = {}, " +
+        log.info("Получен список всех бронирований для всех вещей владельца с id = {}, " +
                 "количество = {}.", userId, bookingOutDtos.size());
         return ResponseEntity.ok().body(bookingOutDtos);
     }
@@ -56,8 +56,9 @@ public class BookingController {
      * Получение данных о конкретном бронировании
      */
     @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingOutDto> getBookingById(@PathVariable Long bookingId,
-                                                        @RequestHeader(xSharerUserId) Long userId) {
+    public ResponseEntity<BookingOutDto> getBookingById(
+            @PathVariable Long bookingId,
+            @RequestHeader(xSharerUserId) Long userId) {
         BookingOutDto bookingOutDto = bookingService.getBookingById(userId, bookingId);
         log.info("Получено бронирование с id = {}.", bookingId);
         return ResponseEntity.ok(bookingOutDto);
@@ -68,8 +69,9 @@ public class BookingController {
      */
     @PostMapping
     @Validated
-    public ResponseEntity<BookingOutDto> saveBooking(@Valid @RequestBody BookingInDto bookingInDto,
-                                                     @RequestHeader(xSharerUserId) Long userId) {
+    public ResponseEntity<BookingOutDto> saveBooking(
+            @Valid @RequestBody BookingInDto bookingInDto,
+            @RequestHeader(xSharerUserId) Long userId) {
         BookingOutDto bookingOutDto = bookingService.saveBooking(bookingInDto, userId);
         log.info("Добавлен новый запрос на бронирование: {}", bookingOutDto);
         return ResponseEntity.ok(bookingOutDto);
@@ -79,8 +81,9 @@ public class BookingController {
      * Подтверждение или отклонение запроса на бронирование
      */
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<BookingOutDto> updateItem(@PathVariable Long bookingId, @RequestParam Boolean approved,
-                                                    @RequestHeader(xSharerUserId) Long userId) {
+    public ResponseEntity<BookingOutDto> updateBooking(
+            @PathVariable Long bookingId, @RequestParam Boolean approved,
+            @RequestHeader(xSharerUserId) Long userId) {
         BookingOutDto bookingOutDto = bookingService.updateBooking(bookingId, approved, userId);
         log.info("Обновлено бронирование: {}.", bookingOutDto);
         return ResponseEntity.ok(bookingOutDto);

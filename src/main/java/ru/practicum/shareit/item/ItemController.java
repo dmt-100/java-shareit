@@ -72,7 +72,7 @@ public class ItemController {
     }
 
     /**
-     * Поиск вещи потенциальным арендатором
+     * Поиск вещи потенциальным арендатором по тексту
      */
     @GetMapping("/search")
     public ResponseEntity<List<ItemDto>> findItems(
