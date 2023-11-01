@@ -42,13 +42,12 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException(String.format("Пользователь с id = " + userId + " не найден.")));
 
-        return itemRequestRepository.findAllByRequestorIdNot(userId, page)
-                .map(ItemRequestMapper.INSTANCE::toItemRequestDto)
-                .getContent();
+        return ItemRequestMapper.INSTANCE.convertItemRequestListToItemRequestDTOList(
+                itemRequestRepository.findAllByRequestorIdNot(userId, page));
     }
 
     @Override
-    public ItemRequestDto getItemRequestById(Long userId, Long requestId) {
+    public ItemRequestDto getItemRequestById(Long requestId, Long userId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException(String.format("Пользователь с id = " + userId + " не найден.")));
         ItemRequest itemRequest = itemRequestRepository.findById(requestId).orElseThrow(() ->

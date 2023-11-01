@@ -54,7 +54,7 @@ public class ItemRequestController {
     public ResponseEntity<ItemRequestDto> getItemRequestById(
             @PathVariable Long requestId,
             @RequestHeader(xSharerUserId) Long userId) {
-        ItemRequestDto itemRequestDto = itemRequestService.getItemRequestById(userId, requestId);
+        ItemRequestDto itemRequestDto = itemRequestService.getItemRequestById(requestId, userId);
         log.info("Получен запрос с id = {}.", requestId);
         return ResponseEntity.ok(itemRequestDto);
     }

@@ -59,7 +59,7 @@ public class BookingController {
     public ResponseEntity<BookingOutDto> getBookingById(
             @PathVariable Long bookingId,
             @RequestHeader(xSharerUserId) Long userId) {
-        BookingOutDto bookingOutDto = bookingService.getBookingById(userId, bookingId);
+        BookingOutDto bookingOutDto = bookingService.getBookingById(bookingId, userId);
         log.info("Получено бронирование с id = {}.", bookingId);
         return ResponseEntity.ok(bookingOutDto);
     }

@@ -50,28 +50,18 @@ public class ItemServiceImpl implements ItemService {
         PageRequest page = PageRequest.of(from, size, Sort.by(Sort.Direction.ASC, "id"));
 
         return itemRepository.findAllByOwnerId(userId, page)
+                .stream()
                 .map(item -> getItemById(item.getId(), userId))
-                .getContent();
+                .collect(Collectors.toList());
     }
 
     @Override
     public ItemDto getItemById(Long itemId, Long userId) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
-                new ItemNotFoundException(String.format("Вещь с идентификатором " + itemId + " не найдена.")));
+                new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
 
-        Booking lastBooking;
-        Booking nextBooking;
-        if (item.getOwner().getId().equals(userId)) {
-            lastBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsBefore(
-                    itemId, StatusBooking.APPROVED, LocalDateTime.now(),
-                    Sort.by(Sort.Direction.DESC, "end")).orElse(null);
-            nextBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsAfter(
-                    itemId, StatusBooking.APPROVED, LocalDateTime.now(),
-                    Sort.by(Sort.Direction.ASC, "start")).orElse(null);
-        } else {
-            lastBooking = null;
-            nextBooking = null;
-        }
+        Booking lastBooking = setLastBooking(item, userId);
+        Booking nextBooking = setNextBooking(item, userId);
 
         List<Comment> comments = commentRepository.findAllByItemId(itemId);
         return ItemMapper.INSTANCE.toItemDtoOwner(item, lastBooking, nextBooking, comments);
@@ -140,8 +130,7 @@ public class ItemServiceImpl implements ItemService {
         PageRequest page = ValidPage.validate(from, size);
 
         return ItemMapper.INSTANCE.convertItemListToItemDTOList(
-                itemRepository.search(text, page)
-                        .getContent());
+                itemRepository.search(text, page));
     }
 
     @Transactional
@@ -172,6 +161,30 @@ public class ItemServiceImpl implements ItemService {
                     "не может быть пустым.", 20001);
         }
         return itemDto;
+    }
+
+    private Booking setLastBooking(Item item, Long userId) {
+        Booking lastBooking;
+        if (item.getOwner().getId().equals(userId)) {
+            lastBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsBefore(
+                    item.getId(), StatusBooking.APPROVED, LocalDateTime.now(),
+                    Sort.by(Sort.Direction.DESC, "end")).orElse(null);
+        } else {
+            lastBooking = null;
+        }
+        return lastBooking;
+    }
+
+    private Booking setNextBooking(Item item, Long userId) {
+        Booking nextBooking;
+        if (item.getOwner().getId().equals(userId)) {
+            nextBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsAfter(
+                    item.getId(), StatusBooking.APPROVED, LocalDateTime.now(),
+                    Sort.by(Sort.Direction.ASC, "start")).orElse(null);
+        } else {
+            nextBooking = null;
+        }
+        return nextBooking;
     }
 
 }
