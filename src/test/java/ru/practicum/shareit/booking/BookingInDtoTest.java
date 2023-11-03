@@ -4,7 +4,7 @@ import ru.practicum.shareit.booking.dto.BookingInDto;
 import ru.practicum.shareit.booking.model.StatusBooking;
 import ru.practicum.shareit.user.dto.UserDto;
 
-import static ru.practicum.shareit.utils.Constants.FORMATTER_FOR_DATETIME;
+import static ru.practicum.shareit.utils.Constants.FORMATTER_FOR_BOOKING;
 
 import java.time.LocalDateTime;
 
@@ -48,9 +48,9 @@ class BookingInDtoTest {
         assertThat(result).extractingJsonPathNumberValue("$.id")
                 .isEqualTo(bookingDto.getId().intValue());
         assertThat(result).extractingJsonPathStringValue("$.start")
-                .isEqualTo(bookingDto.getStart().format(FORMATTER_FOR_DATETIME));
+                .isEqualTo(bookingDto.getStart().format(FORMATTER_FOR_BOOKING));
         assertThat(result).extractingJsonPathStringValue("$.end")
-                .isEqualTo(bookingDto.getEnd().format(FORMATTER_FOR_DATETIME));
+                .isEqualTo(bookingDto.getEnd().format(FORMATTER_FOR_BOOKING));
         assertThat(result).extractingJsonPathNumberValue("$.itemId")
                 .isEqualTo(bookingDto.getItemId().intValue());
         assertThat(result).extractingJsonPathNumberValue("$.booker.id")

@@ -83,7 +83,7 @@
             <version>${querydsl.version}</version>
             <scope>provided</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -141,8 +141,7 @@
                             <outputDirectory>target/generated-sources/java</outputDirectory>
                             <processor>com.querydsl.apt.jpa.JPAAnnotationProcessor</processor>
                             <options>
-                                <querydsl.generatedAnnotationClass>javax.annotation.Generated
-                                </querydsl.generatedAnnotationClass>
+                                <querydsl.generatedAnnotationClass>javax.annotation.Generated</querydsl.generatedAnnotationClass>
                             </options>
                         </configuration>
                     </execution>

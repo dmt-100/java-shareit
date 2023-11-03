@@ -12,6 +12,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -24,10 +25,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.*;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -51,6 +50,9 @@ class ItemServiceImplTest {
 
     @InjectMocks
     private ItemServiceImpl itemService;
+
+    @Captor
+    private ArgumentCaptor<Item> itemArgumentCaptor;
 
     @Test
     @DisplayName("получены все вещи, когда вызваны по умолчанию, то получен пустой список")
@@ -173,7 +175,7 @@ class ItemServiceImplTest {
 
     @Test
     @DisplayName("обновлена вещь, когда вещь валидна, тогда она обновляется")
-    void updateItem_whenItemFound_thenUpdatedItem() {
+    void updateItem_whenItemFound_thenUpdatedItemOnlyAvailableFields() {
         Long userId = 0L;
         User user = new User();
         user.setId(userId);
@@ -186,18 +188,21 @@ class ItemServiceImplTest {
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
 
+        ItemRequest itemRequest = new ItemRequest();
+        itemRequest.setId(5L);
         Item newItem = new Item();
         newItem.setName("2");
-        newItem.setDescription("1");
+        newItem.setDescription("2");
         newItem.setAvailable(true);
-        when(itemRepository.saveAndFlush(any(Item.class))).thenReturn(newItem);
+        newItem.setRequest(itemRequest);
 
-        ItemDto actualItem = itemService.updateItem(itemId,
-                ItemMapper.INSTANCE.toItemDto(newItem), userId);
+        itemService.updateItem(itemId, ItemMapper.INSTANCE.toItemDto(newItem), userId);
+        verify(itemRepository).saveAndFlush(itemArgumentCaptor.capture());
+        Item savedItem = itemArgumentCaptor.getValue();
 
-        assertThat(newItem.getName(), equalTo(actualItem.getName()));
-        assertThat(newItem.getDescription(), equalTo(actualItem.getDescription()));
-        assertThat(newItem.getAvailable(), equalTo(actualItem.getAvailable()));
+        assertThat(newItem.getName(), equalTo(savedItem.getName()));
+        assertThat(newItem.getDescription(), equalTo(savedItem.getDescription()));
+        assertThat(newItem.getAvailable(), equalTo(savedItem.getAvailable()));
 
         InOrder inOrder = inOrder(userRepository, itemRepository);
         verify(itemRepository, times(1)).findById(itemId);
