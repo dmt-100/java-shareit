@@ -13,6 +13,8 @@ import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
 import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
+import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -47,6 +49,8 @@ class ItemServiceImplTest {
     private BookingRepository bookingRepository;
     @Mock
     private CommentRepository commentRepository;
+    @Mock
+    private ItemRequestRepository itemRequestRepository;
 
     @InjectMocks
     private ItemServiceImpl itemService;
@@ -154,6 +158,33 @@ class ItemServiceImplTest {
     }
 
     @Test
+    @DisplayName("сохранена вещь, когда вещь с запросом, тогда она сохраняется")
+    void saveItem_whenItemWithRequest_thenSavedItem() {
+        Long userId = 0L;
+        User user = new User();
+        ItemDto itemToSave = new ItemDto();
+        itemToSave.setAvailable(true);
+        itemToSave.setRequestId(1L);
+        ItemRequest itemRequest = new ItemRequest();
+        itemRequest.setId(1L);
+        Item item = ItemMapper.INSTANCE.toItem(itemToSave, user);
+        item.setRequest(itemRequest);
+
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(itemRequestRepository.findById(anyLong())).thenReturn(Optional.of(itemRequest));
+        when(itemRepository.save(any(Item.class)))
+                .thenReturn(item);
+
+        ItemDto actualItem = itemService.saveItem(itemToSave, userId);
+
+        assertThat(itemToSave, equalTo(actualItem));
+        InOrder inOrder = inOrder(userRepository, itemRequestRepository, itemRepository);
+        inOrder.verify(userRepository, times(1)).findById(userId);
+        inOrder.verify(itemRequestRepository, times(1)).findById(1L);
+        inOrder.verify(itemRepository, times(1)).save(any(Item.class));
+    }
+
+    @Test
     @DisplayName("сохранена вещь, когда вещь не валидна, тогда выбрасывается исключение")
     void saveItem_whenItemNotValid_thenExceptionThrown() {
         ItemDto itemToSave = new ItemDto();
@@ -170,6 +201,23 @@ class ItemServiceImplTest {
         InOrder inOrder = inOrder(userRepository, itemRepository);
         inOrder.verify(userRepository, times(1)).findById(userId);
         inOrder.verify(itemRepository, times(1)).save(any(Item.class));
+    }
+
+    @Test
+    @DisplayName("сохранена вещь, когда пользователь вещи не найден, тогда выбрасывается исключение")
+    void saveItem_whenUserNotFound_thenExceptionThrown() {
+        ItemDto itemToSave = new ItemDto();
+        itemToSave.setAvailable(true);
+        Long userId = 0L;
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> itemService.saveItem(itemToSave, userId));
+
+        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
+        InOrder inOrder = inOrder(userRepository, itemRepository);
+        inOrder.verify(userRepository, times(1)).findById(userId);
+        inOrder.verify(itemRepository, never()).save(any(Item.class));
     }
 
 
@@ -211,8 +259,25 @@ class ItemServiceImplTest {
     }
 
     @Test
-    @DisplayName("обновлена вещь, когда вещь не валидна, тогда выбрасывается исключение")
-    void updateItem_whenItemNotValid_thenExceptionThrown() {
+    @DisplayName("обновлена вещь, когда вещь не найдена, тогда выбрасывается исключение")
+    void updateItem_whenItemNotFound_thenExceptionThrown() {
+        Long userId = 0L;
+        Long itemId = 0L;
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
+                () -> itemService.updateItem(itemId, new ItemDto(), userId));
+
+        assertThat("Вещь с id = 0 не найдена.", equalTo(exception.getMessage()));
+        verify(itemRepository, times(1)).findById(anyLong());
+        verify(userRepository, never()).findById(userId);
+        verify(itemRepository, never()).saveAndFlush(any(Item.class));
+    }
+
+    @Test
+    @DisplayName("обновлена вещь, когда пользователь не является владельцем вещи, " +
+            "тогда выбрасывается исключение")
+    void updateItem_whenUserNotValid_thenExceptionThrown() {
         Long userId = 0L;
         User user = new User();
         user.setId(1L);
@@ -228,6 +293,29 @@ class ItemServiceImplTest {
                 equalTo(exception.getMessage()));
         verify(itemRepository, times(1)).findById(anyLong());
         verify(userRepository, never()).findById(userId);
+        verify(itemRepository, never()).saveAndFlush(any(Item.class));
+    }
+
+    @Test
+    @DisplayName("обновлена вещь, когда пользователь не найден, тогда выбрасывается исключение")
+    void updateItem_whenUserNotFound_thenExceptionThrown() {
+        Long userId = 0L;
+        User user = new User();
+        user.setId(userId);
+        Long itemId = 0L;
+        Item oldItem = new Item();
+        oldItem.setOwner(user);
+
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> itemService.updateItem(itemId, new ItemDto(), userId));
+
+        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
+        InOrder inOrder = inOrder(itemRepository, userRepository);
+        inOrder.verify(itemRepository, times(1)).findById(anyLong());
+        inOrder.verify(userRepository, times(1)).findById(userId);
         verify(itemRepository, never()).saveAndFlush(any(Item.class));
     }
 
@@ -253,6 +341,17 @@ class ItemServiceImplTest {
         verify(itemRepository, times(1)).findById(anyLong());
         inOrder.verify(userRepository, times(1)).findById(userId);
         inOrder.verify(itemRepository, times(1)).saveAndFlush(any(Item.class));
+    }
+
+    @Test
+    @DisplayName("получены все вещи по тексту, когда вызваны по умолчанию, то получен пустой список")
+    void findItems_whenInvokedWithEmptyText_thenReturnedEmptyList() {
+        Long userId = 0L;
+
+        List<ItemDto> actualItems = itemService.findItems("", userId, 0, 1);
+
+        assertThat(actualItems, empty());
+        verify(itemRepository, never()).search("", PageRequest.of(0, 1));
     }
 
     @Test
@@ -307,6 +406,47 @@ class ItemServiceImplTest {
         inOrder.verify(bookingRepository, times(1))
                 .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
         inOrder.verify(commentRepository, times(1)).save(any(Comment.class));
+    }
+
+    @Test
+    @DisplayName("сохранен комментарий, когда вещь не найдена, тогда выбрасывается исключение")
+    void saveComment_whenItemNotFound_thenExceptionThrown() {
+        CommentDto commentToSave = new CommentDto();
+        Long itemId = 0L;
+        Long userId = 0L;
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
+                () -> itemService.saveComment(commentToSave, itemId, userId));
+
+        assertThat("Вещь с идентификатором 0 не найдена.", equalTo(exception.getMessage()));
+        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
+        inOrder.verify(itemRepository, times(1)).findById(itemId);
+        inOrder.verify(userRepository, never()).findById(userId);
+        inOrder.verify(bookingRepository, never())
+                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
+        inOrder.verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    @DisplayName("сохранен комментарий, когда пользователь не найден, тогда выбрасывается исключение")
+    void saveComment_whenUserNotFound_thenExceptionThrown() {
+        CommentDto commentToSave = new CommentDto();
+        Long itemId = 0L;
+        Long userId = 0L;
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(new Item()));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> itemService.saveComment(commentToSave, itemId, userId));
+
+        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
+        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
+        inOrder.verify(itemRepository, times(1)).findById(itemId);
+        inOrder.verify(userRepository, times(1)).findById(userId);
+        inOrder.verify(bookingRepository, never())
+                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
+        inOrder.verify(commentRepository, never()).save(any(Comment.class));
     }
 
     @Test

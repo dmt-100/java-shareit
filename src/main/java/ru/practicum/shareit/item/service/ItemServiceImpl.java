@@ -97,7 +97,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto updateItem(Long itemId, ItemDto itemDto, Long userId) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
-                new ItemNotFoundException(String.format("Вещь с id = " + itemId + "не найдена.")));
+                new ItemNotFoundException(String.format("Вещь с id = " + itemId + " не найдена.")));
         if (!item.getOwner().getId().equals(userId)) {
             throw new ItemOtherOwnerException(String.format(String.format("Пользователь с id = " + userId +
                     " не является владельцем вещи: " + itemDto)));

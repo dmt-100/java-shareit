@@ -53,7 +53,8 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("получен пользователь по ид, когда пользователь найден, то ответ статус ок, и он возвращается")
+    @DisplayName("получен пользователь по ид, когда пользователь найден, " +
+            "то ответ статус ок, и он возвращается")
     void getUserById_whenUserFound_thenReturnedUser() {
         long userId = 0L;
         UserDto expectedUser = new UserDto();
@@ -67,7 +68,8 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("сохранен пользователь, когда пользователь валиден, то ответ статус ок, и он сохраняется")
+    @DisplayName("сохранен пользователь, когда пользователь валиден, " +
+            "то ответ статус ок, и он сохраняется")
     void saveUser_whenUserValid_thenSavedUser() {
         UserDto expectedUser = new UserDto();
         when(userService.saveUser(expectedUser)).thenReturn(expectedUser);
@@ -80,7 +82,8 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("обновлен пользователь, когда пользователь валиден, то ответ статус ок, и он обновляется")
+    @DisplayName("обновлен пользователь, когда пользователь валиден, " +
+            "то ответ статус ок, и он обновляется")
     void updateUser_whenUserValid_thenUpdatedUser() {
         Long userId = 0L;
         UserDto newUser = new UserDto();

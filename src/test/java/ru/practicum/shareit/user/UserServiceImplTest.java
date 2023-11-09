@@ -149,4 +149,29 @@ class UserServiceImplTest {
         verify(userRepository, times(1)).saveAndFlush(any(User.class));
     }
 
+    @Test
+    @DisplayName("обновлен пользователь, когда пользователь не найден, " +
+            "тогда выбрасывается исключение")
+    void updateUser_whenUserNotFound_thenExceptionThrown() {
+        Long userId = 0L;
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final UserNotUpdateException exception = assertThrows(UserNotUpdateException.class,
+                () -> userService.updateUser(userId, new UserDto()));
+
+        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
+        verify(userRepository, times(1)).findById(anyLong());
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("удален пользователь, когда вызвано, тогда он удаляется")
+    void deleteUser_whenInvoked_thenDeletedUser() {
+        Long userId = 0L;
+
+        userService.deleteUserById(userId);
+
+        verify(userRepository, times(1)).deleteById(userId);
+    }
+
 }

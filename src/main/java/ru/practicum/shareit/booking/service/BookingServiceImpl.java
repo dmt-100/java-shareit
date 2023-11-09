@@ -191,7 +191,7 @@ public class BookingServiceImpl implements BookingService {
         }
         if (!booking.getStatus().equals(StatusBooking.WAITING)) {
             throw new ValidationException("Статус бронирования с id = " + bookingId +
-                    " не был изменён пользователем с id = " + userId, 30004);
+                    " не был изменён пользователем с id = " + userId + ".", 30004);
         }
 
         if (approved) {
