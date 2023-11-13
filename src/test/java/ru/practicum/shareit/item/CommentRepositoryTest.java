@@ -21,11 +21,11 @@ import static org.hamcrest.Matchers.equalTo;
 class CommentRepositoryTest {
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
     @Autowired
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
     @Autowired
-    CommentRepository commentRepository;
+    private CommentRepository commentRepository;
 
     private final Item item2 = new Item();
     private final Comment comment1 = new Comment();

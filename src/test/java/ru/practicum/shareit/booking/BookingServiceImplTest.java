@@ -182,6 +182,24 @@ class BookingServiceImplTest {
     }
 
     @Test
+    @DisplayName("получены все бронирования, когда пользователь не найден, то выброшено исключение")
+    void getAllBookingsByUser_whenUserNotFound_thenExceptionThrown() {
+        Long userId = 0L;
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> bookingService.getAllBookingsByUser(userId, StateBooking.REJECTED, 0, 1));
+
+        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
+
+        InOrder inOrder = inOrder(userRepository, bookingRepository);
+        inOrder.verify(userRepository, times(1)).findById(anyLong());
+        inOrder.verify(bookingRepository, never())
+                .findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(anyLong(),
+                        any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class));
+    }
+
+    @Test
     @DisplayName("получены все бронирования для вещей владельца, " +
             "когда вызваны все, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedAll_thenReturnedBookingsCollectionInList() {
@@ -320,6 +338,24 @@ class BookingServiceImplTest {
     }
 
     @Test
+    @DisplayName("получены все бронирования для вещей владельца, " +
+            "когда пользователь не найден, то выброшено исключение")
+    void getAllBookingsAllItemsByOwner_whenUserNotFound_thenExceptionThrown() {
+        Long userId = 0L;
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
+                () -> bookingService.getAllBookingsAllItemsByOwner(userId, StateBooking.REJECTED, 0, 1));
+
+        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
+
+        InOrder inOrder = inOrder(userRepository, bookingRepository);
+        inOrder.verify(userRepository, times(1)).findById(anyLong());
+        inOrder.verify(bookingRepository, never())
+                .findAll(any(BooleanExpression.class), any(Pageable.class));
+    }
+
+    @Test
     @DisplayName("получено бронирование по ид, когда бронирование найдено, тогда оно возвращается")
     void getBookingById_whenBookingFound_thenReturnedItem() {
         long bookingId = 0L;
@@ -409,6 +445,51 @@ class BookingServiceImplTest {
         inOrder.verify(userRepository, times(1)).findById(userId);
         inOrder.verify(itemRepository, times(1)).findById(itemId);
         inOrder.verify(bookingRepository, times(1)).save(any(Booking.class));
+    }
+
+    @Test
+    @DisplayName("сохранено бронирование, когда дата и время не валидны 1, " +
+            "тогда выбрасывается исключение")
+    void saveBooking_whenDateTimeNotValid1_thenExceptionThrown() {
+        Long userId = 0L;
+        Long itemId = 0L;
+        BookingInDto bookingToSave = new BookingInDto();
+        bookingToSave.setItemId(itemId);
+        bookingToSave.setStart(LocalDateTime.now());
+        bookingToSave.setEnd(LocalDateTime.now().minusMinutes(1));
+
+        final ValidationException exception = assertThrows(ValidationException.class,
+                () -> bookingService.saveBooking(bookingToSave, userId));
+
+        assertThat("Ошибка! Дата и время начала бронирования должны быть раньше даты и времени " +
+                "конца бронирования. Код ошибки: 30001", equalTo(exception.getMessage()));
+        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
+        inOrder.verify(userRepository, never()).findById(anyLong());
+        inOrder.verify(itemRepository, never()).findById(anyLong());
+        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    @DisplayName("сохранено бронирование, когда дата и время не валидны 2, " +
+            "тогда выбрасывается исключение")
+    void saveBooking_whenDateTimeNotValid2_thenExceptionThrown() {
+        Long userId = 0L;
+        Long itemId = 0L;
+        LocalDateTime dateTimeBooking = LocalDateTime.now();
+        BookingInDto bookingToSave = new BookingInDto();
+        bookingToSave.setItemId(itemId);
+        bookingToSave.setStart(dateTimeBooking);
+        bookingToSave.setEnd(dateTimeBooking);
+
+        final ValidationException exception = assertThrows(ValidationException.class,
+                () -> bookingService.saveBooking(bookingToSave, userId));
+
+        assertThat("Ошибка! Дата и время начала бронирования не могут совпадать с датой и временем " +
+                "конца бронирования. Код ошибки: 30002", equalTo(exception.getMessage()));
+        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
+        inOrder.verify(userRepository, never()).findById(anyLong());
+        inOrder.verify(itemRepository, never()).findById(anyLong());
+        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
     }
 
     @Test

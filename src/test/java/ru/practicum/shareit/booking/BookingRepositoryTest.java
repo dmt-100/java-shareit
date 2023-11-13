@@ -24,11 +24,11 @@ import static org.hamcrest.Matchers.equalTo;
 class BookingRepositoryTest {
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
     @Autowired
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
     @Autowired
-    BookingRepository bookingRepository;
+    private BookingRepository bookingRepository;
 
     private final User user = new User();
     private final Item item2 = new Item();

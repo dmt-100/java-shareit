@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.equalTo;
 class ItemRepositoryTest {
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
     @Autowired
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
 
     private final User user = new User();
     private final Item item1 = new Item();

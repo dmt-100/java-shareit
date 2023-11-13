@@ -39,9 +39,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserControllerIntegrationTest {
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
     @MockBean
     private UserServiceImpl userService;
 
@@ -167,11 +167,10 @@ class UserControllerIntegrationTest {
     @DisplayName("сохранен пользователь, когда пользователь валиден, " +
             "то ответ статус конфликт, и он не сохраняется")
     void saveUser_whenUserNotSaves_thenReturnedConflict() {
-        long userId = 0L;
         UserNotSaveException exception = new UserNotSaveException("Пользователь не был создан.");
         when(userService.saveUser(any(UserDto.class))).thenThrow(exception);
 
-        String result = mockMvc.perform(post("/users", userId)
+        String result = mockMvc.perform(post("/users")
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userDto)))
@@ -183,6 +182,28 @@ class UserControllerIntegrationTest {
 
         assertThat("{\"error\":\"Пользователь не был создан.\"}", equalTo(result));
         verify(userService, times(1)).saveUser(userDto);
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("сохранен пользователь, когда пользователь валиден, " +
+            "то ответ статус бед реквест, и он не сохраняется")
+    void saveUser_whenUserNotSaves_thenReturnedBadRequest() {
+        userDto.setEmail(null);
+
+        String result = mockMvc.perform(post("/users")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userDto)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat("{\"errorResponses\":[{\"error\":\"Ошибка! e-mail не может быть пустым.\"}]}",
+                equalTo(result));
+        verify(userService, never()).saveUser(userDto);
     }
 
     @SneakyThrows

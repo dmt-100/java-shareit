@@ -45,9 +45,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BookingControllerIntegrationTest {
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
     @MockBean
     private BookingServiceImpl bookingService;
 
@@ -270,6 +270,28 @@ class BookingControllerIntegrationTest {
         assertThat(objectMapper.writeValueAsString(bookingOutDto2), equalTo(result));
         verify(bookingService, times(1))
                 .updateBooking(bookingId, true, userId);
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("обновлено бронирование, когда эппрувд не передан, " +
+            "то ответ статус ок, и оно обновляется")
+    void updateBooking_whenApprovedNotValid_thenUpdatedBooking() {
+        long bookingId = 0L;
+
+        String result = mockMvc.perform(patch("/bookings/{bookingId}", bookingId)
+                        .header("X-Sharer-User-Id", userId)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bookingOutDto2)))
+                .andDo(print())
+                .andExpect(status().isInternalServerError())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat("{\"error\":\"Произошла непредвиденная ошибка.\"}", equalTo(result));
+        verify(bookingService, never()).updateBooking(bookingId, true, userId);
     }
 
 }
