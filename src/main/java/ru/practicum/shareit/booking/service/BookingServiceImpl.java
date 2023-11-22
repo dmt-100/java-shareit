@@ -1,9 +1,18 @@
 package ru.practicum.shareit.booking.service;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingInDto;
 import ru.practicum.shareit.booking.dto.BookingOutDto;
-import ru.practicum.shareit.booking.exception.*;
+import ru.practicum.shareit.booking.exception.BookingNotFoundException;
+import ru.practicum.shareit.booking.exception.BookingNotSaveException;
+import ru.practicum.shareit.booking.exception.BookingNotUpdateException;
+import ru.practicum.shareit.booking.exception.BookingOtherBookerException;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.model.QBooking;
@@ -25,13 +34,6 @@ import ru.practicum.shareit.utils.ValidPage;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Sort;
-import com.querydsl.core.types.dsl.BooleanExpression;
 
 @Service
 @Transactional(readOnly = true)
