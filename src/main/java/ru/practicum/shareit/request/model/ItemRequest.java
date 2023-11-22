@@ -1,17 +1,17 @@
 package ru.practicum.shareit.request.model;
 
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import javax.persistence.*;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * TODO Sprint add-item-requests.
- */
 
 // класс, отвечающий за запрос вещи
 @Entity
@@ -33,6 +33,9 @@ public class ItemRequest {
     private User requestor; // пользователь, создавший запрос
 
     @Column
-    private Instant created = Instant.now(); // дата и время создания запроса
+    private Instant created; // = Instant.now(); // дата и время создания запроса
+
+    @OneToMany(mappedBy = "request", fetch = FetchType.LAZY)
+    private Set<Item> items = new HashSet<>();
 
 }

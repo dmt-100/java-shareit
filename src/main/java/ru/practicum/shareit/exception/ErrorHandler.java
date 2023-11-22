@@ -2,8 +2,10 @@ package ru.practicum.shareit.exception;
 
 import ru.practicum.shareit.booking.BookingController;
 import ru.practicum.shareit.booking.exception.*;
-import ru.practicum.shareit.item.ItemController;
 import ru.practicum.shareit.item.exception.*;
+import ru.practicum.shareit.item.ItemController;
+import ru.practicum.shareit.request.ItemRequestController;
+import ru.practicum.shareit.request.exception.ItemRequestNotFoundException;
 import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.exception.UserNotSaveException;
@@ -14,15 +16,15 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice(assignableTypes = {UserController.class, ItemController.class,
-        BookingController.class})
+        BookingController.class, ItemRequestController.class})
 @Slf4j
 public class ErrorHandler {
 
@@ -35,9 +37,25 @@ public class ErrorHandler {
         );
     }
 
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMethodArgumentTypeMismatchException(final RuntimeException e) {
+        String message;
+        if (((MethodArgumentTypeMismatchException) e).getName().equals("state")) {
+            message = "Unknown state: " + ((MethodArgumentTypeMismatchException) e).getValue();
+        } else {
+            message = e.getMessage();
+        }
+        log.warn(message);
+        return new ErrorResponse(
+                message
+        );
+    }
+
     @ExceptionHandler({UserNotFoundException.class, ItemNotFoundException.class,
             BookingNotFoundException.class, CommentNotSaveException.class,
-            BookingOtherBookerException.class, ItemOtherOwnerException.class})
+            BookingOtherBookerException.class, ItemOtherOwnerException.class,
+            ItemRequestNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundException(final RuntimeException e) {
         log.warn(e.getMessage());
@@ -51,15 +69,6 @@ public class ErrorHandler {
             BookingNotSaveException.class, BookingNotUpdateException.class})
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleNotSaveAndUpdate(final RuntimeException e) {
-        log.warn(e.getMessage());
-        return new ErrorResponse(
-                e.getMessage()
-        );
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHttpMessageNotReadableException(final HttpMessageNotReadableException e) {
         log.warn(e.getMessage());
         return new ErrorResponse(
                 e.getMessage()

@@ -8,11 +8,13 @@ import java.util.List;
 
 public interface BookingService {
 
-    List<BookingOutDto> getAllBookingsByUser(Long userId, StateBooking state);
+    List<BookingOutDto> getAllBookingsByUser(
+            Long userId, StateBooking state, Integer from, Integer size);
 
-    List<BookingOutDto> getAllBookingsAllItemsByOwner(Long userId, StateBooking state);
+    List<BookingOutDto> getAllBookingsAllItemsByOwner(
+            Long userId, StateBooking state, Integer from, Integer size);
 
-    BookingOutDto getBookingById(Long userId, Long bookingId);
+    BookingOutDto getBookingById(Long bookingId, Long userId);
 
     BookingOutDto saveBooking(BookingInDto bookingDto, Long userId);
 
