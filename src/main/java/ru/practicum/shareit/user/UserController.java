@@ -1,73 +1,55 @@
 package ru.practicum.shareit.user;
 
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.service.UserService;
-
-import java.util.List;
-import javax.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.validations.Create;
+import ru.practicum.shareit.validations.Update;
 
-@RestController
-@RequiredArgsConstructor
-@RequestMapping(path = "/users")
+import java.util.List;
+
 @Slf4j
+@RestController
+@RequestMapping(path = "/users")
+@RequiredArgsConstructor
 public class UserController {
-
     private final UserService userService;
 
-    /**
-     * Получение списка всех пользователей
-     */
     @GetMapping
-    public ResponseEntity<List<UserDto>> getAllUsers() {
-        List<UserDto> users = userService.getAllUsers();
-        log.info("Получен список пользователей, количество = {}", users.size());
-        return ResponseEntity.ok().body(users);
+    public List<UserDto> getAllUsers() {
+        log.info("Возвращен список всех пользователей");
+        return userService.getAllUsers();
     }
 
-    /**
-     * Получение пользователя по id
-     */
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable Long userId) {
-        UserDto userDto = userService.getUserById(userId);
-        log.info("Получен пользователь с id = {}", userId);
-        return ResponseEntity.ok(userDto);
+    @GetMapping("/{id}")
+    public UserDto getUserById(@PathVariable Long id) {
+        log.info("Возвращен пользователь с id = {}", id);
+        return userService.getUserById(id);
     }
 
-    /**
-     * Создание пользователя
-     */
+    //@Validated(value = Create.class)
     @PostMapping
-    @Validated
-    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody UserDto userDto) {
-        userDto = userService.saveUser(userDto);
-        log.info("Добавлен новый пользователь: {}", userDto);
-        return ResponseEntity.ok(userDto);
+    public UserDto saveUser(@Validated(Create.class) @RequestBody UserDto userDto) {
+        UserDto savedUserDto = userService.saveUser(userDto);
+        log.info("Пользователь сохранен, id = {}", savedUserDto.getId());
+        return savedUserDto;
     }
 
-    /**
-     * Редактирование пользователя
-     */
+    //@Validated(value = Update.class)
     @PatchMapping("/{userId}")
-    public ResponseEntity<UserDto> updateUser(@PathVariable Long userId, @RequestBody UserDto userDto) {
-        userDto = userService.updateUser(userId, userDto);
-        log.info("Обновлен пользователь: {}", userDto);
-        return ResponseEntity.ok(userDto);
+    public UserDto updateUser(@Validated(Update.class) @RequestBody UserDto userDto,
+                              @PathVariable Long userId) {
+        userDto.setId(userId);
+        UserDto savedUserDto = userService.updateUser(userDto);
+        log.info("Обновлены поля у пользователя с id {}", savedUserDto.getId());
+        return userService.updateUser(savedUserDto);
     }
 
-    /**
-     * Удаление пользователя по id
-     */
-    @DeleteMapping("/{userId}")
-    public void deleteUserById(@PathVariable Long userId) {
-        log.info("Удалён пользователь с id = {}", userId);
-        userService.deleteUserById(userId);
+    @DeleteMapping("/{id}")
+    public void deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        log.info("Пользователь удален, id = {}", id);
     }
-
 }

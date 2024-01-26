@@ -25,3 +25,5 @@ public class Main {
 }
 ```
 ------
+
+![image](src/main/resources/ER-diagram.png)

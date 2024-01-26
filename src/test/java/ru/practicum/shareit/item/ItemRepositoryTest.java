@@ -1,84 +1,67 @@
 package ru.practicum.shareit.item;
 
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repository.UserRepository;
-
-import java.util.List;
-
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
-import org.junit.jupiter.api.*;
+import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserRepository;
+
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-@DataJpaTest
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@DataJpaTest(properties = "spring.datasource.url=jdbc:h2:mem:shareit")
+@Transactional
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class ItemRepositoryTest {
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ItemRepository itemRepository;
-
-    private final User user = new User();
-    private final Item item1 = new Item();
-    private final Item item2 = new Item();
-    private final Item item3 = new Item();
+    private List<Item> items;
 
     @BeforeEach
-    public void addItems() {
-        user.setName("name");
-        user.setEmail("mail@mail.ru");
-
-        item1.setName("1");
-        item1.setDescription("ОписАнИе 1");
-        item1.setAvailable(true);
-        item1.setOwner(user);
-        item2.setName("2");
-        item2.setDescription("опИсание 2");
-        item2.setAvailable(false);
-        item2.setOwner(user);
-        item3.setName("3");
-        item3.setDescription("опИсаниЕ 3");
-        item3.setAvailable(true);
-        item3.setOwner(user);
-
-        userRepository.save(user);
-        itemRepository.save(item1);
-        itemRepository.save(item2);
-        itemRepository.save(item3);
-    }
-
-    @AfterEach
-    public void deleteItems() {
-        userRepository.deleteAll();
-        itemRepository.deleteAll();
+    void fillDB() {
+        User savedUser = userRepository.save(makeUser("Akhra", "akhra@yandex.ru"));
+        Item savedItem1 = itemRepository.save(makeItem("Отвертка", "Крестовая", savedUser));
+        Item savedItem2 = itemRepository.save(makeItem("Леска", "длинная", savedUser));
+        Item savedItem3 = itemRepository.save(makeItem("Пылесос", "мОщный", savedUser));
+        items = List.of(savedItem1, savedItem2, savedItem3);
     }
 
     @Test
-    @Order(1)
-    @DisplayName("получены все вещи по ид владельца, когда вызвана, " +
-            "то получен список вещей")
-    void findAllByOwnerId() {
-        List<Item> actualItems = itemRepository.findAllByOwnerId(user.getId(), PageRequest.of(1, 1));
+    void findAllByNameOrDescription() {
+        //when
+        List<Item> items1 = itemRepository.findAllByNameOrDescription("лЕс",
+                PageRequest.of(0, 10, Sort.by("id").ascending()));
+        List<Item> items2 = itemRepository.findAllByNameOrDescription("ТОв",
+                PageRequest.of(0, 10, Sort.by("id").ascending()));
+        //then
+        assertThat(List.of(items.get(1), items.get(2)), equalTo(items1));
+        assertThat(List.of(items.get(0)), equalTo(items2));
 
-        assertThat(1, equalTo(actualItems.size()));
-        assertThat(item2, equalTo(actualItems.get(0)));
     }
 
-    @Test
-    @Order(2)
-    @DisplayName("получены все вещи по тексту, когда вызвана, то получен список вещей")
-    void search() {
-        List<Item> actualItems = itemRepository.search("ОПИСАНИ", PageRequest.of(0, 5));
+    private Item makeItem(String itemName, String itemDescription, User owner) {
+        Item item = new Item();
 
-        assertThat(2, equalTo(actualItems.size()));
-        assertThat(item1, equalTo(actualItems.get(0)));
-        assertThat(item3, equalTo(actualItems.get(1)));
+        item.setName(itemName);
+        item.setAvailable(true);
+        item.setDescription(itemDescription);
+        item.setOwner(owner);
+        return item;
+    }
+
+    private User makeUser(String name, String Email) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(Email);
+        return user;
     }
 
 }

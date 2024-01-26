@@ -1,177 +1,187 @@
 package ru.practicum.shareit.user;
 
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.exception.UserNotFoundException;
-import ru.practicum.shareit.user.exception.UserNotSaveException;
-import ru.practicum.shareit.user.exception.UserNotUpdateException;
-import ru.practicum.shareit.user.mapper.UserMapper;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repository.UserRepository;
-import ru.practicum.shareit.user.service.UserServiceImpl;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.exceptions.ContentAlreadyExistException;
+import ru.practicum.shareit.exceptions.ContentNotFountException;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.dto.UserMapper;
+
+import javax.validation.ConstraintViolationException;
+import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceImplTest {
-
+public class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
-
     @InjectMocks
     private UserServiceImpl userService;
+    @Captor
+    private ArgumentCaptor<User> userArgumentCaptor;
 
-    @Test
-    @DisplayName("получены все пользователи, когда вызваны по умолчанию, то получен пустой список")
-    void getAllUsers_whenInvokedDefault_thenReturnedEmptyList() {
-        List<UserDto> expectedUsers = userService.getAllUsers();
-
-        assertThat(expectedUsers, empty());
-        verify(userRepository, times(1)).findAll();
+    private UserDto createUser() {
+        UserDto userDto = new UserDto();
+        userDto.setEmail("akhraa1@yandex.ru");
+        userDto.setId(1L);
+        userDto.setName("Akhra");
+        return userDto;
     }
 
     @Test
-    @DisplayName("получены все пользователи, когда вызваны, то получен непустой список")
-    void getAllUsers_whenInvoked_thenReturnedUsersCollectionInList() {
-        List<User> expectedUsers = Arrays.asList(new User(), new User());
-        when(userRepository.findAll()).thenReturn(expectedUsers);
-
-        List<UserDto> actualUsers = userService.getAllUsers();
-
-        assertThat(UserMapper.INSTANCE.convertUserListToUserDTOList(expectedUsers),
-                equalTo(actualUsers));
-        verify(userRepository, times(1)).findAll();
+    public void getAllUsers_whenInvoked_thenReturnUsersCollection() {
+        when(userRepository.findAll())
+                .thenReturn(List.of(UserMapper.toUser(createUser()), UserMapper.toUser(createUser())));
+        Assertions.assertEquals(userService.getAllUsers().size(), 2);
+        assertThat(userService.getAllUsers().size(), equalTo(2));
+        assertThat(userService.getAllUsers().get(0).getId(), equalTo(1L));
+        assertThat(userService.getAllUsers().get(0).getId(), equalTo(1L));
     }
 
     @Test
-    @DisplayName("получен пользователь по ид, когда пользователь найден, тогда он возвращается")
-    void getUserById_whenUserFound_thenReturnedUser() {
-        long userId = 0L;
-        User expectedUser = new User();
-        when(userRepository.findById(userId)).thenReturn(Optional.of(expectedUser));
-
-        UserDto actualUser = userService.getUserById(userId);
-
-        assertThat(UserMapper.INSTANCE.toUserDto(expectedUser), equalTo(actualUser));
-        verify(userRepository, times(1)).findById(userId);
+    public void saveUser_whenInvoked_thenReturnSavedUser() {
+        //given
+        UserDto userDto = createUser();
+        when(userRepository.save(any())).thenReturn(UserMapper.toUser(userDto));
+        //when
+        UserDto savedUserDto = userService.saveUser(userDto);
+        //then
+        verify(userRepository, times(1)).save(any());
+        assertThat(savedUserDto, equalTo(userDto));
     }
 
     @Test
-    @DisplayName("получен пользователь по ид, когда пользователь не найден, " +
-            "тогда выбрасывается исключение")
-    void getUserById_whenUserNotFound_thenExceptionThrown() {
-        long userId = 0L;
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> userService.getUserById(userId));
-
-        assertThat("Пользователь с идентификатором 0 не найден.", equalTo(exception.getMessage()));
-        verify(userRepository, times(1)).findById(userId);
-    }
-
-    @Test
-    @DisplayName("сохранен пользователь, когда пользователь валиден, тогда он сохраняется")
-    void saveUser_whenUserValid_thenSavedUser() {
-        UserDto userToSave = new UserDto();
-        when(userRepository.save(any(User.class))).thenReturn(UserMapper.INSTANCE.toUser(userToSave));
-
-        UserDto actualUser = userService.saveUser(userToSave);
-
-        assertThat(userToSave, equalTo(actualUser));
-        verify(userRepository, times(1)).save(any(User.class));
-    }
-
-    @Test
-    @DisplayName("сохранен пользователь, когда пользователь не валиден, тогда выбрасывается исключение")
-    void saveUser_whenUserNotValid_thenExceptionThrown() {
-        UserDto userToSave = new UserDto();
-        when(userRepository.save(any(User.class)))
-                .thenThrow(new UserNotSaveException("Пользователь не был создан"));
-
-        final UserNotSaveException exception = assertThrows(UserNotSaveException.class,
-                () -> userService.saveUser(userToSave));
-
-        assertThat("Пользователь не был создан", equalTo(exception.getMessage()));
-        verify(userRepository, times(1)).save(any(User.class));
-    }
-
-    @Test
-    @DisplayName("обновлен пользователь, когда пользователь валиден, тогда он обновляется")
-    void updateUser_whenUserFound_thenUpdatedUser() {
-        Long userId = 0L;
-        User oldUser = new User();
-        oldUser.setName("1");
-        oldUser.setEmail("1@mail.ru");
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(oldUser));
-
-        User newUser = new User();
-        newUser.setName("2");
-        newUser.setEmail("1@mail.ru");
-        when(userRepository.saveAndFlush(any(User.class))).thenReturn(newUser);
-
-        UserDto actualUser = userService.updateUser(userId, UserMapper.INSTANCE.toUserDto(newUser));
-
-        assertThat(newUser.getName(), equalTo(actualUser.getName()));
-        assertThat(newUser.getEmail(), equalTo(actualUser.getEmail()));
-        verify(userRepository, times(1)).findById(anyLong());
-        verify(userRepository, times(1)).saveAndFlush(any(User.class));
-    }
-
-    @Test
-    @DisplayName("обновлен пользователь, когда пользователь не валиден, " +
-            "тогда выбрасывается исключение")
-    void updateUser_whenUserNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-        User oldUser = new User();
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(oldUser));
-        when(userRepository.saveAndFlush(any(User.class)))
-                .thenThrow(new UserNotUpdateException("Пользователь не был обновлен"));
-
-        final UserNotUpdateException exception = assertThrows(UserNotUpdateException.class,
-                () -> userService.updateUser(userId, new UserDto()));
-
-        assertThat("Пользователь не был обновлен", equalTo(exception.getMessage()));
-        verify(userRepository, times(1)).findById(anyLong());
-        verify(userRepository, times(1)).saveAndFlush(any(User.class));
-    }
-
-    @Test
-    @DisplayName("обновлен пользователь, когда пользователь не найден, " +
-            "тогда выбрасывается исключение")
-    void updateUser_whenUserNotFound_thenExceptionThrown() {
-        Long userId = 0L;
+    public void updateUser_whenUncreatedUser_ContentNotFountExceptionThrown() {
+        //given
+        UserDto userDto = createUser();
         when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        final UserNotUpdateException exception = assertThrows(UserNotUpdateException.class,
-                () -> userService.updateUser(userId, new UserDto()));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-        verify(userRepository, times(1)).findById(anyLong());
-        verify(userRepository, never()).saveAndFlush(any(User.class));
+        //when
+        final ContentNotFountException exception = Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> userService.updateUser(userDto));
+        //then
+        verify(userRepository, never()).save(any());
+        Assertions.assertEquals("Пользователь не найден", exception.getMessage());
     }
 
     @Test
-    @DisplayName("удален пользователь, когда вызвано, тогда он удаляется")
-    void deleteUser_whenInvoked_thenDeletedUser() {
-        Long userId = 0L;
-
-        userService.deleteUserById(userId);
-
-        verify(userRepository, times(1)).deleteById(userId);
+    public void updateUser_whenIdIsNull_thenContentNotFountExceptionThrown() {
+        //given
+        UserDto userDto = createUser();
+        userDto.setId(null);
+        //when
+        final ContentNotFountException exception = Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> userService.updateUser(userDto));
+        //then
+        verify(userRepository, never()).save(any());
+        Assertions.assertEquals("Необходимо указать id пользователя", exception.getMessage());
     }
 
+    @Test
+    public void updateUser_whenEmailDuplicate_thenContentAlreadyExistExceptionThrown() {
+        //given
+        UserDto userDto = createUser();
+        UserDto userDtoSameEmail = createUser();
+        userDtoSameEmail.setId(2L);
+
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(UserMapper.toUser(userDto)));
+        when(userRepository.findUserByEmail(anyString())).thenReturn(Optional.of(UserMapper.toUser(userDtoSameEmail)));
+        //when
+        final ContentAlreadyExistException exception = Assertions.assertThrows(
+                ContentAlreadyExistException.class,
+                () -> userService.updateUser(userDto));
+        //then
+        verify(userRepository, never()).save(any());
+        Assertions.assertEquals("Пользователь с таким email уже существует", exception.getMessage());
+    }
+
+    @Test
+    public void updateUser_whenUserFoundWithoutEmailDuplicate_thenReturnUpdatedUser() {
+        //given
+        UserDto oldUserDto = createUser();
+        User oldUser = UserMapper.toUser(oldUserDto);
+        UserDto newUserDto = createUser();
+        newUserDto.setName("Anri");
+        User newUser = UserMapper.toUser(newUserDto);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(oldUser));
+        when(userRepository.findUserByEmail(anyString())).thenReturn(Optional.empty());
+        when(userRepository.save(any())).thenReturn(new User());
+        //when
+        userService.updateUser(newUserDto);
+        //then
+        InOrder inOrder = inOrder(userRepository);
+        inOrder.verify(userRepository, times(1)).findById(any());
+        inOrder.verify(userRepository, times(1)).save(userArgumentCaptor.capture());
+        User savedUser = userArgumentCaptor.getValue();
+        assertThat(savedUser.getEmail(), equalTo(oldUserDto.getEmail()));
+        assertThat(savedUser.getName(), equalTo(newUser.getName()));
+    }
+
+    @Test
+    public void updateUser_whenUserIsNotValid_thenConstraintViolationExceptionThrown() {
+        UserDto userDto = createUser();
+        userDto.setEmail("notValidEmail");
+        User user = UserMapper.toUser(userDto);
+
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(userRepository.findUserByEmail(anyString())).thenReturn(Optional.empty());
+        //when
+        Assertions.assertThrows(
+                ConstraintViolationException.class,
+                () -> userService.updateUser(userDto));
+        //then
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    public void getUserById_whenUserFound_thenReturnUser() {
+        UserDto userDto = createUser();
+        User user = UserMapper.toUser(userDto);
+        when(userRepository.findById(any())).thenReturn(Optional.of(user));
+        //when
+        UserDto returnedUserDto = userService.getUserById(userDto.getId());
+        //then
+        assertThat(returnedUserDto, equalTo(userDto));
+    }
+
+    @Test
+    public void getUserById_whenUserNotFound_thenContentNotFountExceptionThrown() {
+        when(userRepository.findById(any())).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> userService.getUserById(any()));
+    }
+
+    @Test
+    public void deleteUser_whenUserFound_thenInvokeDeleteUser() {
+        UserDto userDto = createUser();
+        User user = UserMapper.toUser(userDto);
+
+        when(userRepository.findById(any())).thenReturn(Optional.of(user));
+        //when
+        userService.deleteUser(any());
+        //then
+        verify(userRepository, times(1)).deleteById(any());
+    }
+
+    @Test
+    public void deleteUser_whenUserNotFound_thenContentNotFoundExceptionThrown() {
+        when(userRepository.findById(any())).thenReturn(Optional.empty());
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> userService.deleteUser(any()));
+        //then
+        verify(userRepository, never()).deleteById(any());
+    }
 }

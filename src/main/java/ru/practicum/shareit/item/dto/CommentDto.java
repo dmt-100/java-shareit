@@ -1,24 +1,24 @@
 package ru.practicum.shareit.item.dto;
 
-import static ru.practicum.shareit.utils.Constants.PATTERN_FOR_DATETIME;
+import lombok.Getter;
+import lombok.Setter;
 
+import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
-import javax.validation.constraints.NotEmpty;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Data;
-
-@Data
+@Getter
+@Setter
 public class CommentDto {
-
     private Long id;
 
-    @NotEmpty(message = "Ошибка! Текст комментария не может быть пустым.")
+    @NotBlank
     private String text;
 
+    private Long itemId;
+
+    private Long userId;
+
+    private LocalDateTime created = LocalDateTime.now();
+
     private String authorName;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = PATTERN_FOR_DATETIME)
-    private LocalDateTime created;
-
 }

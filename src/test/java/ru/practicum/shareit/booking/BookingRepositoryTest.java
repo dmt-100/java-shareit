@@ -1,94 +1,114 @@
 package ru.practicum.shareit.booking;
 
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.StatusBooking;
-import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repository.UserRepository;
-
-import java.time.LocalDateTime;
-
-import org.junit.jupiter.api.AfterEach;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-@DataJpaTest
+@DataJpaTest(properties = "spring.datasource.url=jdbc:h2:mem:shareit")
+@Transactional
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class BookingRepositoryTest {
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ItemRepository itemRepository;
-    @Autowired
-    private BookingRepository bookingRepository;
-
-    private final User user = new User();
-    private final Item item2 = new Item();
+    private List<Booking> savedBookings;
 
     @BeforeEach
-    public void addComments() {
-        user.setName("name");
-        user.setEmail("mail@mail.ru");
+    void fillDB() {
+        User savedUser1 = userRepository.save(makeUser("Akhra", "akhra@yandex.ru"));
+        User savedUser2 = userRepository.save(makeUser("Anri", "anri@yandex.ru"));
+        Item savedItem1 = itemRepository.save(makeItem("Отвертка", "Крестовая", savedUser1));
+        Item savedItem2 = itemRepository.save(makeItem("Леска", "длинная", savedUser1));
+        Item savedItem3 = itemRepository.save(makeItem("Пылесос", "мОщный", savedUser2));
 
-        Item item1 = new Item();
-        item1.setName("1");
-        item1.setDescription("1");
-        item1.setAvailable(true);
-        item1.setOwner(user);
-        item2.setName("2");
-        item2.setDescription("2");
-        item2.setAvailable(false);
-        item2.setOwner(user);
+        Booking savedBooking1 = bookingRepository.save(makeBooking(savedItem1, savedUser2,
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(2),
+                Status.APPROVED));
+        Booking savedBooking2 = bookingRepository.save(makeBooking(savedItem2, savedUser2,
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(4),
+                Status.APPROVED));
+        Booking savedBooking3 = bookingRepository.save(makeBooking(savedItem3, savedUser1,
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(4),
+                Status.APPROVED));
+        savedBookings = List.of(savedBooking1, savedBooking2, savedBooking3);
 
-        Booking booking1 = new Booking();
-        booking1.setStart(LocalDateTime.now());
-        booking1.setEnd(LocalDateTime.now());
-        booking1.setItem(item1);
-        booking1.setBooker(user);
-        booking1.setStatus(StatusBooking.WAITING);
-        Booking booking2 = new Booking();
-        booking2.setStart(LocalDateTime.now());
-        booking2.setEnd(LocalDateTime.now());
-        booking2.setItem(item2);
-        booking2.setBooker(user);
-        booking2.setStatus(StatusBooking.WAITING);
-        Booking booking3 = new Booking();
-        booking3.setStart(LocalDateTime.now());
-        booking3.setEnd(LocalDateTime.now().plusHours(3));
-        booking3.setItem(item2);
-        booking3.setBooker(user);
-        booking3.setStatus(StatusBooking.WAITING);
-
-        userRepository.save(user);
-        itemRepository.save(item1);
-        itemRepository.save(item2);
-        bookingRepository.save(booking1);
-        bookingRepository.save(booking2);
-        bookingRepository.save(booking3);
-    }
-
-    @AfterEach
-    public void deleteComments() {
-        userRepository.deleteAll();
-        itemRepository.deleteAll();
-        bookingRepository.deleteAll();
     }
 
     @Test
-    @DisplayName("существует ли бронирование, когда вызвано, то получено количество бронирований")
-    void isFindBooking() {
-        Long countBookings = bookingRepository.isFindBooking(item2.getId(), user.getId(),
-                LocalDateTime.now().plusMinutes(30));
+    void findByCurrentBooker() {
+        //when
+        List<Booking> returnedBookings = bookingRepository.findByCurrentBooker(savedBookings.get(0).getBooker().getId(),
+                LocalDateTime.now().plusDays(3),
+                PageRequest.of(0, 10, Sort.by("id").ascending()));
+        //then
+        assertThat(List.of(savedBookings.get(1)), equalTo(returnedBookings));
 
-        assertThat(1L, equalTo(countBookings));
+    }
+
+    @Test
+    void findByOwnerCurrentBooker() {
+        //when
+        List<Booking> returnedBookings = bookingRepository.findByOwnerCurrentBooker(savedBookings.get(2).getItem().getOwner().getId(),
+                LocalDateTime.now().plusDays(3),
+                PageRequest.of(0, 10, Sort.by("id").ascending()));
+        //then
+        assertThat(List.of(savedBookings.get(2)), equalTo(returnedBookings));
+    }
+
+    @Test
+    void findTimeCrossingBookings() {
+        //when
+        List<Booking> returnedBookings = bookingRepository.findTimeCrossingBookings(savedBookings.get(1).getItem().getId(),
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(4));
+        //then
+        assertThat(List.of(savedBookings.get(1)), equalTo(returnedBookings));
+    }
+
+    private Item makeItem(String itemName, String itemDescription, User owner) {
+        Item item = new Item();
+
+        item.setName(itemName);
+        item.setAvailable(true);
+        item.setDescription(itemDescription);
+        item.setOwner(owner);
+        return item;
+    }
+
+    private User makeUser(String name, String Email) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(Email);
+        return user;
+    }
+
+    private Booking makeBooking(Item item, User booker, LocalDateTime start, LocalDateTime end, Status status) {
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(start);
+        booking.setEnd(end);
+        booking.setStatus(status);
+        return booking;
     }
 
 }

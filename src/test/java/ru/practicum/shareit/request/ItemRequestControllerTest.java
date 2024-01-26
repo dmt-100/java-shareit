@@ -1,128 +1,184 @@
 package ru.practicum.shareit.request;
 
-import ru.practicum.shareit.request.dto.ItemRequestDto;
-import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemMapper;
+import ru.practicum.shareit.request.dto.ItemRequestInDto;
+import ru.practicum.shareit.request.dto.ItemRequestMapper;
+import ru.practicum.shareit.request.dto.ItemRequestOutDto;
+import ru.practicum.shareit.request.dto.ItemRequestOutWithItemsDto;
+import ru.practicum.shareit.user.User;
 
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(controllers = ItemRequestController.class)
 class ItemRequestControllerTest {
+    @Autowired
+    private ObjectMapper mapper;
 
-    @Mock
-    private ItemRequestServiceImpl itemRequestService;
+    @Autowired
+    private MockMvc mvc;
 
-    @InjectMocks
-    private ItemRequestController itemRequestController;
+    @MockBean
+    private ItemRequestsService itemRequestsService;
 
-    @Test
-    @DisplayName("получены все свои запросы вместе с данными об ответах на них, " +
-            "когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllItemRequestsByUser_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByUser(userId);
+    private ItemRequestOutDto itemRequestOutDto;
+    private ItemRequestInDto itemRequestInDto;
+    private ItemRequestOutWithItemsDto itemRequestOutWithItemsDto;
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(itemRequestService, times(1)).getAllItemRequestsByUser(userId);
+    @BeforeEach
+    void setUp() {
+        ItemRequest itemRequest = new ItemRequest();
+        itemRequest.setCreated(LocalDateTime.now());
+        itemRequest.setRequester(createUser());
+        itemRequest.setDescription("нужен пылесос");
+        itemRequest.setId(1L);
+
+        itemRequestOutDto = ItemRequestMapper.mapToItemRequestOutDto(itemRequest);
+        itemRequestInDto = ItemRequestMapper.mapToItemRequestInDto(itemRequest);
+        itemRequestOutWithItemsDto = ItemRequestMapper.mapToItemRequestOutWithItemsDto(itemRequest, List.of(createItemDto()));
     }
 
-    @Test
-    @DisplayName("получены все свои запросы вместе с данными об ответах на них, " +
-            "когда вызваны, то ответ статус ок и непустое тело")
-    void getAllItemRequestsByUser_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
-        Long userId = 0L;
-        List<ItemRequestDto> expectedItemRequests = Arrays.asList(new ItemRequestDto());
-        when(itemRequestService.getAllItemRequestsByUser(userId)).thenReturn(expectedItemRequests);
-
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByUser(userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequests, equalTo(response.getBody()));
-        verify(itemRequestService, times(1)).getAllItemRequestsByUser(userId);
+    private User createUser() {
+        User user = new User();
+        user.setEmail("akhraa1@yandex.ru");
+        user.setId(1L);
+        user.setName("Akhra");
+        return user;
     }
 
-    @Test
-    @DisplayName("получены все запросы, созданные другими пользователями, " +
-            "когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllItemRequestsByOtherUsers_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
+    private ItemDto createItemDto() {
+        User user = createUser();
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(itemRequestService, times(1))
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
-
+        Item item = new Item();
+        item.setRequestId(null);
+        item.setId(1L);
+        item.setName("Дрель");
+        item.setAvailable(true);
+        item.setDescription("мощная");
+        item.setOwner(user);
+        return ItemMapper.toItemDto(item);
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("получены все запросы, созданные другими пользователями, " +
-            "когда вызваны, то ответ статус ок и непустое тело")
-    void getAllItemRequestsByOtherUsers_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
-        Long userId = 0L;
-        List<ItemRequestDto> expectedItemRequests = Arrays.asList(new ItemRequestDto());
-        when(itemRequestService.getAllItemRequestsByOtherUsers(userId, 0, 0))
-                .thenReturn(expectedItemRequests);
-
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequests, equalTo(response.getBody()));
-        verify(itemRequestService, times(1))
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
+    void addRequest_whenКуйгуыеIsNotValid_thenMethodArgumentNotValidExceptionThrown() {
+        //given
+        itemRequestInDto.setDescription(null);
+        //when
+        mvc.perform(post("/requests")
+                        .content(mapper.writeValueAsString(itemRequestInDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isBadRequest());
+        verify(itemRequestsService, never()).addRequest(any());
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("получен запрос по ид, когда запрос найден, то ответ статус ок, и он возвращается")
-    void getItemRequestById_whenItemRequestFound_thenReturnedItemRequest() {
-        long requestId = 0L;
-        long userId = 0L;
-        ItemRequestDto expectedItemRequest = new ItemRequestDto();
-        when(itemRequestService.getItemRequestById(requestId, userId)).thenReturn(expectedItemRequest);
-
-        ResponseEntity<ItemRequestDto> response = itemRequestController
-                .getItemRequestById(requestId, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequest, equalTo(response.getBody()));
-        verify(itemRequestService, times(1))
-                .getItemRequestById(requestId, userId);
+    void addRequest() {
+        when(itemRequestsService.addRequest(any()))
+                .thenReturn(itemRequestOutDto);
+        //when
+        String savedRequest = mvc.perform(post("/requests")
+                        .content(mapper.writeValueAsString(itemRequestInDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(itemRequestOutDto), equalTo(savedRequest));
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("сохранен запрос, когда запрос валиден, то ответ статус ок, и он сохраняется")
-    void saveItemRequest_whenItemRequestValid_thenSavedItemRequest() {
-        ItemRequestDto expectedItemRequest = new ItemRequestDto();
-        long userId = 0L;
-        when(itemRequestService.saveItemRequest(expectedItemRequest, userId))
-                .thenReturn(expectedItemRequest);
-
-        ResponseEntity<ItemRequestDto> response = itemRequestController
-                .saveItemRequest(expectedItemRequest, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequest, equalTo(response.getBody()));
-        verify(itemRequestService, times(1))
-                .saveItemRequest(expectedItemRequest, userId);
+    void getAllUserRequests() {
+        when(itemRequestsService.getAllUserRequests(anyLong()))
+                .thenReturn(List.of(itemRequestOutWithItemsDto));
+        //when
+        String requests = mvc.perform(get("/requests")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(List.of(itemRequestOutWithItemsDto)), equalTo(requests));
     }
 
+    @SneakyThrows
+    @Test
+    void getAllRequests() {
+        when(itemRequestsService.getAllRequests(anyLong(), anyInt(), anyInt()))
+                .thenReturn(List.of(itemRequestOutWithItemsDto));
+        //when
+        String requests = mvc.perform(get("/requests/all")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(List.of(itemRequestOutWithItemsDto)), equalTo(requests));
+    }
+
+    @SneakyThrows
+    @Test
+    void getRequestById() {
+        when(itemRequestsService.getRequestById(anyLong(), anyLong()))
+                .thenReturn(itemRequestOutWithItemsDto);
+        //when
+        String request = mvc.perform(get("/requests/{requestId}", 1)
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(itemRequestOutWithItemsDto), equalTo(request));
+    }
+
+    @SneakyThrows
+    @Test
+    void getRequestById_whenIllegalId_thenMethodArgumentTypeMismatchExceptionThrown() {
+        //when
+        mvc.perform(get("/requests/{requestId}", "id")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isBadRequest());
+    }
 }

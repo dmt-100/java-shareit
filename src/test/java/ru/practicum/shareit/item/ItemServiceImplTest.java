@@ -1,49 +1,35 @@
 package ru.practicum.shareit.item;
 
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.StatusBooking;
-import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.exception.*;
-import ru.practicum.shareit.item.mapper.CommentMapper;
-import ru.practicum.shareit.item.mapper.ItemMapper;
-import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.repository.CommentRepository;
-import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.item.service.ItemServiceImpl;
-import ru.practicum.shareit.request.model.ItemRequest;
-import ru.practicum.shareit.request.repository.ItemRequestRepository;
-import ru.practicum.shareit.user.exception.UserNotFoundException;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repository.UserRepository;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.*;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.booking.Booking;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.Status;
+import ru.practicum.shareit.exceptions.BookingBadRequestException;
+import ru.practicum.shareit.exceptions.ContentNotFountException;
+import ru.practicum.shareit.exceptions.EditingNotAllowedException;
+import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserRepository;
+
+import javax.validation.ConstraintViolationException;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ItemServiceImplTest {
-
     @Mock
     private ItemRepository itemRepository;
     @Mock
@@ -52,524 +38,328 @@ class ItemServiceImplTest {
     private BookingRepository bookingRepository;
     @Mock
     private CommentRepository commentRepository;
-    @Mock
-    private ItemRequestRepository itemRequestRepository;
-
     @InjectMocks
     private ItemServiceImpl itemService;
-
     @Captor
     private ArgumentCaptor<Item> itemArgumentCaptor;
 
-    @Test
-    @DisplayName("получены все вещи, когда вызваны по умолчанию, то получен пустой список")
-    void getAllItemsByUser_whenInvoked_thenReturnedEmptyList() {
-        Long userId = 0L;
-
-        List<ItemDto> actualItems = itemService.getAllItemsByUser(userId, 0, 1);
-
-        assertThat(actualItems, empty());
-        verify(itemRepository, never()).findById(anyLong());
-        verify(commentRepository, never()).findAllByItemId(anyLong());
-        verify(itemRepository, times(1))
-                .findAllByOwnerId(anyLong(), any(Pageable.class));
+    private ItemDto createItem() {
+        ItemDto itemDto = new ItemDto();
+        itemDto.setRequestId(null);
+        itemDto.setId(1L);
+        itemDto.setName("Дрель");
+        itemDto.setAvailable(true);
+        itemDto.setDescription("мощная");
+        itemDto.setOwner(1L);
+        return itemDto;
     }
 
-    @Test
-    @DisplayName("получены все вещи, когда вызваны, то получен непустой список")
-    void getAllItemsByUser_whenInvoked_thenReturnedItemsCollectionInList() {
-        long userId = 0L;
+    private User createUser() {
         User user = new User();
+        user.setEmail("akhraa1@yandex.ru");
         user.setId(1L);
-        long itemId = 0L;
-        Item item = new Item();
-        item.setId(itemId);
-        item.setOwner(user);
-        List<Item> expectedItems = Arrays.asList(item);
-
-        when(itemRepository.findAllByOwnerId(anyLong(), any(Pageable.class))).thenReturn(expectedItems);
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-
-        List<ItemDto> actualItems = itemService.getAllItemsByUser(userId, 0, 1);
-
-        assertThat(expectedItems.size(), equalTo(actualItems.size()));
-        assertThat(expectedItems.get(0).getId(), equalTo(actualItems.get(0).getId()));
-        assertThat(expectedItems.get(0).getName(), equalTo(actualItems.get(0).getName()));
-        assertThat(expectedItems.get(0).getDescription(), equalTo(actualItems.get(0).getDescription()));
-        assertThat(expectedItems.get(0).getAvailable(), equalTo(actualItems.get(0).getAvailable()));
-        assertThat(expectedItems.get(0).getRequest(), equalTo(actualItems.get(0).getRequestId()));
-
-        InOrder inOrder = inOrder(itemRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1))
-                .findAllByOwnerId(anyLong(), any(Pageable.class));
-        inOrder.verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(commentRepository, times(1)).findAllByItemId(anyLong());
-    }
-
-
-    @Test
-    @DisplayName("получена вещь по ид, когда вещь найдена, тогда она возвращается")
-    void getItemById_whenItemFound_thenReturnedItem() {
-        long itemId = 0L;
-        long userId = 0L;
-        Item expectedItem = new Item();
-        User user = new User();
-        user.setId(1L);
-        expectedItem.setOwner(user);
-        when(itemRepository.findById(itemId)).thenReturn(Optional.of(expectedItem));
-        when(commentRepository.findAllByItemId(anyLong())).thenReturn(Collections.EMPTY_LIST);
-
-        ItemDto actualItem = itemService.getItemById(itemId, userId);
-
-        assertThat(ItemMapper.INSTANCE.toItemDtoOwner(expectedItem,
-                null, null, Collections.EMPTY_LIST), equalTo(actualItem));
-        InOrder inOrder = inOrder(itemRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(commentRepository, times(1)).findAllByItemId(itemId);
+        user.setName("Akhra");
+        return user;
     }
 
     @Test
-    @DisplayName("получена вещь по ид, когда вещь найдена, тогда она возвращается с бронированиями")
-    void getItemById_whenItemFound_thenReturnedItemWithBookings() {
-        long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        long itemId = 0L;
-        Item expectedItem = new Item();
-        expectedItem.setId(itemId);
-        expectedItem.setOwner(user);
+    void saveItem_whenOwnerFound_thenReturnSavedItem() {
+        //given
+        ItemDto itemDto = createItem();
+        User owner = createUser();
+        when(userRepository.findById(any())).thenReturn(Optional.of(owner));
+        when(itemRepository.save(any())).thenReturn(ItemMapper.toItem(itemDto, owner));
 
-        Booking lastBooking = new Booking();
-        lastBooking.setId(5L);
-        lastBooking.setStart(LocalDateTime.now());
-        lastBooking.setEnd(LocalDateTime.now().plusHours(1));
-        lastBooking.setStatus(StatusBooking.APPROVED);
-        lastBooking.setItem(expectedItem);
-        Booking nextBooking = new Booking();
-        nextBooking.setId(7L);
-        nextBooking.setStart(LocalDateTime.now());
-        nextBooking.setEnd(LocalDateTime.now().plusHours(2));
-        nextBooking.setStatus(StatusBooking.APPROVED);
-        nextBooking.setItem(expectedItem);
-
-        Comment comment = new Comment();
-        comment.setId(2L);
-        comment.setText("text");
-        comment.setCreated(LocalDateTime.now());
-        comment.setAuthor(user);
-        comment.setItem(expectedItem);
-
-        when(itemRepository.findById(itemId)).thenReturn(Optional.of(expectedItem));
-        when(bookingRepository.findFirstByItemIdAndStatusAndStartIsBefore(anyLong(), any(StatusBooking.class),
-                any(LocalDateTime.class), any(Sort.class))).thenReturn(Optional.of(lastBooking));
-        when(bookingRepository.findFirstByItemIdAndStatusAndStartIsAfter(anyLong(), any(StatusBooking.class),
-                any(LocalDateTime.class), any(Sort.class))).thenReturn(Optional.of(nextBooking));
-        when(commentRepository.findAllByItemId(anyLong())).thenReturn(Arrays.asList(comment));
-
-        ItemDto actualItem = itemService.getItemById(itemId, userId);
-
-        assertThat(ItemMapper.INSTANCE.toItemDtoOwner(expectedItem,
-                lastBooking, nextBooking, Arrays.asList(comment)), equalTo(actualItem));
-        InOrder inOrder = inOrder(itemRepository, bookingRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(bookingRepository, times(1))
-                .findFirstByItemIdAndStatusAndStartIsBefore(anyLong(), any(StatusBooking.class),
-                        any(LocalDateTime.class), any(Sort.class));
-        inOrder.verify(bookingRepository, times(1))
-                .findFirstByItemIdAndStatusAndStartIsAfter(anyLong(), any(StatusBooking.class),
-                        any(LocalDateTime.class), any(Sort.class));
-        inOrder.verify(commentRepository, times(1)).findAllByItemId(itemId);
+        assertThat(itemService.saveItem(itemDto, 1L), equalTo(itemDto));
     }
 
     @Test
-    @DisplayName("получена вещь по ид, когда вещь не найдена, тогда выбрасывается исключение")
-    void getItemById_whenItemNotFound_thenExceptionThrown() {
-        long itemId = 0L;
-        when(itemRepository.findById(itemId)).thenReturn(Optional.empty());
+    void saveItem_whenOwnerNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        when(userRepository.findById(any())).thenReturn(Optional.empty());
 
-        final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
-                () -> itemService.getItemById(itemId, 0L));
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> itemService.saveItem(itemDto, 1L));
 
-        assertThat("Вещь с идентификатором 0 не найдена.", equalTo(exception.getMessage()));
-        verify(itemRepository, times(1)).findById(itemId);
+        verify(itemRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("сохранена вещь, когда вещь валидна, тогда она сохраняется")
-    void saveItem_whenItemValid_thenSavedItem() {
-        ItemDto itemToSave = new ItemDto();
-        itemToSave.setAvailable(true);
-        Long userId = 0L;
-        User user = new User();
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRepository.save(any(Item.class)))
-                .thenReturn(ItemMapper.INSTANCE.toItem(itemToSave, user));
+    void patchItem_whenItemIdIsNull_thenContentNotFountExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        itemDto.setId(null);
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> itemService.patchItem(itemDto, 1L));
 
-        ItemDto actualItem = itemService.saveItem(itemToSave, userId);
-
-        assertThat(itemToSave, equalTo(actualItem));
-        InOrder inOrder = inOrder(userRepository, itemRepository);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRepository, times(1)).save(any(Item.class));
+        verify(itemRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("сохранена вещь, когда вещь с запросом, тогда она сохраняется")
-    void saveItem_whenItemWithRequest_thenSavedItem() {
-        Long userId = 0L;
-        User user = new User();
-        ItemDto itemToSave = new ItemDto();
-        itemToSave.setAvailable(true);
-        itemToSave.setRequestId(1L);
-        ItemRequest itemRequest = new ItemRequest();
-        itemRequest.setId(1L);
-        Item item = ItemMapper.INSTANCE.toItem(itemToSave, user);
-        item.setRequest(itemRequest);
+    void patchItem_whenItemNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        when(itemRepository.findById(any())).thenReturn(Optional.empty());
 
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRequestRepository.findById(anyLong())).thenReturn(Optional.of(itemRequest));
-        when(itemRepository.save(any(Item.class)))
-                .thenReturn(item);
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> itemService.patchItem(itemDto, 1L));
 
-        ItemDto actualItem = itemService.saveItem(itemToSave, userId);
-
-        assertThat(itemToSave, equalTo(actualItem));
-        InOrder inOrder = inOrder(userRepository, itemRequestRepository, itemRepository);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRequestRepository, times(1)).findById(1L);
-        inOrder.verify(itemRepository, times(1)).save(any(Item.class));
+        verify(itemRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("сохранена вещь, когда статус доступности не валиден, тогда выбрасывается исключение")
-    void saveItem_whenAvailableNotValid_thenExceptionThrown() {
-        ItemDto itemToSave = new ItemDto();
-        Long userId = 0L;
+    void patchItem_whenUserNotOwner_thenEditingNotAllowedExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item = ItemMapper.toItem(itemDto, user);
+        when(itemRepository.findById(any())).thenReturn(Optional.of(item));
 
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> itemService.saveItem(itemToSave, userId));
+        Assertions.assertThrows(
+                EditingNotAllowedException.class,
+                () -> itemService.patchItem(itemDto, 2L));
 
-        assertThat("Ошибка! Статус доступности вещи для аренды не может быть пустым. " +
-                "Код ошибки: 20001", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository);
-        inOrder.verify(userRepository, never()).findById(userId);
-        inOrder.verify(itemRepository, never()).save(any(Item.class));
+        verify(itemRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("сохранена вещь, когда вещь не валидна, тогда выбрасывается исключение")
-    void saveItem_whenItemNotValid_thenExceptionThrown() {
-        ItemDto itemToSave = new ItemDto();
-        itemToSave.setAvailable(true);
-        Long userId = 0L;
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(itemRepository.save(any(Item.class)))
-                .thenThrow(new ItemNotSaveException("Вещь не была создана"));
+    void patchItem_whenItemNotValid_thenConstraintViolationExceptionThrown() {
+        //given
+        User user = createUser();
+        ItemDto oldItemDto = createItem();
+        oldItemDto.setAvailable(null);
+        Item oldItem = ItemMapper.toItem(oldItemDto, user);
 
-        final ItemNotSaveException exception = assertThrows(ItemNotSaveException.class,
-                () -> itemService.saveItem(itemToSave, userId));
-
-        assertThat("Вещь не была создана", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRepository, times(1)).save(any(Item.class));
-    }
-
-    @Test
-    @DisplayName("сохранена вещь, когда пользователь вещи не найден, тогда выбрасывается исключение")
-    void saveItem_whenUserNotFound_thenExceptionThrown() {
-        ItemDto itemToSave = new ItemDto();
-        itemToSave.setAvailable(true);
-        Long userId = 0L;
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> itemService.saveItem(itemToSave, userId));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRepository, never()).save(any(Item.class));
-    }
-
-
-    @Test
-    @DisplayName("обновлена вещь, когда вещь валидна, тогда она обновляется")
-    void updateItem_whenItemFound_thenUpdatedItemOnlyAvailableFields() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Long itemId = 0L;
-        Item oldItem = new Item();
-        oldItem.setName("1");
-        oldItem.setDescription("1");
-        oldItem.setAvailable(false);
-        oldItem.setOwner(user);
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
 
-        ItemRequest itemRequest = new ItemRequest();
-        itemRequest.setId(5L);
-        Item newItem = new Item();
-        newItem.setName("2");
-        newItem.setDescription("2");
-        newItem.setAvailable(true);
-        newItem.setRequest(itemRequest);
+        Assertions.assertThrows(
+                ConstraintViolationException.class,
+                () -> itemService.patchItem(oldItemDto, 1L));
 
-        itemService.updateItem(itemId, ItemMapper.INSTANCE.toItemDto(newItem), userId);
-        verify(itemRepository).saveAndFlush(itemArgumentCaptor.capture());
+        verify(itemRepository, never()).save(any());
+    }
+
+    @Test
+    void patchItem_whenEditingAllowed_thenReturnUpdatedItem() {
+        //given
+        User user = createUser();
+        ItemDto oldItemDto = createItem();
+        Item oldItem = ItemMapper.toItem(oldItemDto, user);
+        ItemDto newItemDto = createItem();
+        newItemDto.setName("Перфаратор");
+        Item newItem = ItemMapper.toItem(newItemDto, user);
+
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
+        when(itemRepository.save(any())).thenReturn(oldItem);
+
+        itemService.patchItem(newItemDto, 1L);
+
+        InOrder inOrder = inOrder(itemRepository);
+        inOrder.verify(itemRepository, times(1)).findById(any());
+        inOrder.verify(itemRepository, times(1)).save(itemArgumentCaptor.capture());
         Item savedItem = itemArgumentCaptor.getValue();
 
-        assertThat(newItem.getName(), equalTo(savedItem.getName()));
-        assertThat(newItem.getDescription(), equalTo(savedItem.getDescription()));
-        assertThat(newItem.getAvailable(), equalTo(savedItem.getAvailable()));
-
-        InOrder inOrder = inOrder(userRepository, itemRepository);
-        verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRepository, times(1)).saveAndFlush(any(Item.class));
+        assertThat(savedItem.getName(), equalTo(newItem.getName()));
+        assertThat(savedItem.getDescription(), equalTo(oldItemDto.getDescription()));
     }
 
     @Test
-    @DisplayName("обновлена вещь, когда вещь не найдена, тогда выбрасывается исключение")
-    void updateItem_whenItemNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        Long itemId = 0L;
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
+    void getItemById_whenInvoked_thenReturnItemWithFilteredBookingsAndComments() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item = ItemMapper.toItem(itemDto, user);
 
-        final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
-                () -> itemService.updateItem(itemId, new ItemDto(), userId));
-
-        assertThat("Вещь с id = 0 не найдена.", equalTo(exception.getMessage()));
-        verify(itemRepository, times(1)).findById(anyLong());
-        verify(userRepository, never()).findById(userId);
-        verify(itemRepository, never()).saveAndFlush(any(Item.class));
-    }
-
-    @Test
-    @DisplayName("обновлена вещь, когда пользователь не является владельцем вещи, " +
-            "тогда выбрасывается исключение")
-    void updateItem_whenUserNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(1L);
-        Long itemId = 0L;
-        Item oldItem = new Item();
-        oldItem.setOwner(user);
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
-
-        final ItemOtherOwnerException exception = assertThrows(ItemOtherOwnerException.class,
-                () -> itemService.updateItem(itemId, new ItemDto(), userId));
-
-        assertThat(String.format("Пользователь с id = 0 не является владельцем вещи: " + new ItemDto()),
-                equalTo(exception.getMessage()));
-        verify(itemRepository, times(1)).findById(anyLong());
-        verify(userRepository, never()).findById(userId);
-        verify(itemRepository, never()).saveAndFlush(any(Item.class));
-    }
-
-    @Test
-    @DisplayName("обновлена вещь, когда пользователь не найден, тогда выбрасывается исключение")
-    void updateItem_whenUserNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Long itemId = 0L;
-        Item oldItem = new Item();
-        oldItem.setOwner(user);
-
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> itemService.updateItem(itemId, new ItemDto(), userId));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(itemRepository, userRepository);
-        inOrder.verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        verify(itemRepository, never()).saveAndFlush(any(Item.class));
-    }
-
-    @Test
-    @DisplayName("обновлена вещь, когда вещь не может быть обновлена, тогда выбрасывается исключение")
-    void updateItem_whenItemNotUpdate_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Long itemId = 0L;
-        Item oldItem = new Item();
-        oldItem.setOwner(user);
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(oldItem));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(itemRepository.saveAndFlush(any(Item.class)))
-                .thenThrow(new ItemNotUpdateException("Вещь не была обновлена"));
-
-        final ItemNotUpdateException exception = assertThrows(ItemNotUpdateException.class,
-                () -> itemService.updateItem(itemId, new ItemDto(), userId));
-
-        assertThat("Вещь не была обновлена", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository);
-        verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRepository, times(1)).saveAndFlush(any(Item.class));
-    }
-
-    @Test
-    @DisplayName("получены все вещи по тексту, когда вызваны по умолчанию, то получен пустой список")
-    void findItems_whenInvokedWithEmptyText_thenReturnedEmptyList() {
-        Long userId = 0L;
-
-        List<ItemDto> actualItems = itemService.findItems("", userId, 0, 1);
-
-        assertThat(actualItems, empty());
-        verify(itemRepository, never()).search("", PageRequest.of(0, 1));
-    }
-
-    @Test
-    @DisplayName("получены все вещи по тексту, когда вызваны по умолчанию, то получен пустой список")
-    void findItems_whenInvoked_thenReturnedEmptyList() {
-        Long userId = 0L;
-
-        List<ItemDto> actualItems = itemService.findItems("1", userId, 0, 1);
-
-        assertThat(actualItems, empty());
-        verify(itemRepository, times(1))
-                .search("1", PageRequest.of(0, 1));
-    }
-
-    @Test
-    @DisplayName("получены все вещи по тексту, когда вызваны, то получен непустой список")
-    void findItems_whenInvoked_thenReturnedItemsCollectionInList() {
-        Long userId = 0L;
-        List<Item> expectedItems = Arrays.asList(new Item(), new Item());
-        when(itemRepository.search(anyString(), any(Pageable.class))).thenReturn(expectedItems);
-
-        List<ItemDto> actualItems = itemService.findItems("1", userId, 1, 1);
-
-        assertThat(ItemMapper.INSTANCE.convertItemListToItemDTOList(expectedItems),
-                equalTo(actualItems));
-        verify(itemRepository, times(1))
-                .search("1", PageRequest.of(1, 1));
-    }
-
-    @Test
-    @DisplayName("сохранен комментарий, когда комментарий валиден, тогда он сохраняется")
-    void saveComment_whenCommentValid_thenSavedComment() {
-        Comment comment = new Comment();
-        CommentDto commentToSave = CommentMapper.INSTANCE.toCommentDto(comment);
-        Long userId = 0L;
-        User user = new User();
-        Long itemId = 0L;
-        Item item = new Item();
+        List<Booking> itemBookings = getBookings(item);
+        List<Comment> itemComments = getComments(item);
 
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(bookingRepository.isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class)))
-                .thenReturn(0L);
-        when(commentRepository.save(any(Comment.class))).thenReturn(comment);
+        when(bookingRepository.findByItemId(anyLong(), any())).thenReturn(itemBookings);
+        when(commentRepository.findByItemId(anyLong())).thenReturn(itemComments);
 
-        CommentDto actualComment = itemService.saveComment(commentToSave, itemId, userId);
+        ItemWithBookAndCommentsDto items = itemService.getItemById(1L, 1L);
 
-        assertThat(commentToSave, equalTo(actualComment));
-        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(bookingRepository, times(1))
-                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
-        inOrder.verify(commentRepository, times(1)).save(any(Comment.class));
+        assertThat(items.getComments().size(), equalTo(2));
+        assertThat(items.getLastBooking().getId(), equalTo(1L));
+        assertThat(items.getNextBooking().getId(), equalTo(3L));
     }
 
     @Test
-    @DisplayName("сохранен комментарий, когда вещь не найдена, тогда выбрасывается исключение")
-    void saveComment_whenItemNotFound_thenExceptionThrown() {
-        CommentDto commentToSave = new CommentDto();
-        Long itemId = 0L;
-        Long userId = 0L;
+    void getItemsOfUser_whenInvoked_thenReturnItemsListWithFilteredBookingsAndComments() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item1 = ItemMapper.toItem(itemDto, user);
+
+        ItemDto itemDto2 = createItem();
+        itemDto2.setId(2L);
+        Item item2 = ItemMapper.toItem(itemDto2, user);
+
+        List<Booking> item1Bookings = getBookings(item1);
+        List<Booking> item2Bookings = getBookings(item2);
+        List<Booking> itemsBookings = Stream.of(item1Bookings, item2Bookings)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        List<Comment> item1Comments = getComments(item1);
+        List<Comment> item2Comments = getComments(item2);
+        List<Comment> itemsComments = Stream.of(item1Comments, item2Comments)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(itemRepository.findAllByOwnerId(anyLong(), any())).thenReturn(List.of(item1, item2));
+        when(bookingRepository.findByItemIdIn(anyList(), any())).thenReturn(itemsBookings);
+        when(commentRepository.findByItemIdIn(anyList())).thenReturn(itemsComments);
+
+        List<ItemWithBookAndCommentsDto> items = itemService.getItemsOfUser(1L, 0, 10);
+
+        assertThat(items.size(), equalTo(2));
+
+        assertThat(items.get(0).getId(), equalTo(1L));
+        assertThat(items.get(0).getComments().size(), equalTo(2));
+        assertThat(items.get(1).getId(), equalTo(2L));
+        assertThat(items.get(1).getComments().size(), equalTo(2));
+
+        assertThat(items.get(0).getLastBooking().getId(), equalTo(1L));
+        assertThat(items.get(1).getLastBooking().getId(), equalTo(1L));
+
+        assertThat(items.get(0).getNextBooking().getId(), equalTo(3L));
+        assertThat(items.get(1).getNextBooking().getId(), equalTo(3L));
+    }
+
+    @Test
+    void searchItems_whenInvoked_thenReturnListOfItems() {
+        //when
+        itemService.searchItems("hi", 0, 1);
+        //then
+        verify(itemRepository, times(1)).findAllByNameOrDescription(anyString(), any());
+    }
+
+    @Test
+    void saveComment_whenItemNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item = ItemMapper.toItem(itemDto, user);
+        CommentDto commentDto = CommentMapper.mapToCommentDto(getComments(item).get(0));
         when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
-                () -> itemService.saveComment(commentToSave, itemId, userId));
-
-        assertThat("Вещь с идентификатором 0 не найдена.", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(userRepository, never()).findById(userId);
-        inOrder.verify(bookingRepository, never())
-                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
-        inOrder.verify(commentRepository, never()).save(any(Comment.class));
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> itemService.saveComment(commentDto));
     }
 
     @Test
-    @DisplayName("сохранен комментарий, когда пользователь не найден, тогда выбрасывается исключение")
-    void saveComment_whenUserNotFound_thenExceptionThrown() {
-        CommentDto commentToSave = new CommentDto();
-        Long itemId = 0L;
-        Long userId = 0L;
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(new Item()));
+    void saveComment_whenUserNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item = ItemMapper.toItem(itemDto, user);
+        CommentDto commentDto = CommentMapper.mapToCommentDto(getComments(item).get(0));
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
         when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> itemService.saveComment(commentToSave, itemId, userId));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(bookingRepository, never())
-                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
-        inOrder.verify(commentRepository, never()).save(any(Comment.class));
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> itemService.saveComment(commentDto));
     }
 
     @Test
-    @DisplayName("сохранен комментарий, когда комментарий не сохранен, тогда выбрасывается исключение")
-    void saveComment_whenCommentNotSaved_thenExceptionThrown() {
-        CommentDto commentToSave = new CommentDto();
-        Long itemId = 0L;
-        Long userId = 0L;
+    void saveComment_whenUserNotBookedItem_thenBookingBadRequestExceptionThrown() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item = ItemMapper.toItem(itemDto, user);
+        CommentDto commentDto = CommentMapper.mapToCommentDto(getComments(item).get(0));
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
 
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(new Item()));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class)))
-                .thenReturn(0L);
-        when(commentRepository.save(any(Comment.class)))
-                .thenThrow(new CommentNotSaveException("Комментарий не был создан"));
-
-        final CommentNotSaveException exception = assertThrows(CommentNotSaveException.class,
-                () -> itemService.saveComment(commentToSave, itemId, userId));
-
-        assertThat("Комментарий не был создан", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(bookingRepository, times(1))
-                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
-        inOrder.verify(commentRepository, times(1)).save(any(Comment.class));
+        Assertions.assertThrows(
+                BookingBadRequestException.class,
+                () -> itemService.saveComment(commentDto));
     }
 
     @Test
-    @DisplayName("сохранен комментарий, когда комментарий не валиден, тогда выбрасывается исключение")
-    void saveComment_whenCommentNotValid_thenExceptionThrown() {
-        CommentDto commentToSave = new CommentDto();
-        Long itemId = 0L;
-        Long userId = 0L;
-
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(new Item()));
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class)))
-                .thenReturn(null);
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> itemService.saveComment(commentToSave, itemId, userId));
-
-        assertThat("Ошибка!  Отзыв может оставить только тот пользователь, который брал эту вещь в аренду, " +
-                "и только после окончания срока аренды. Код ошибки: 20002", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(itemRepository, userRepository, bookingRepository, commentRepository);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(bookingRepository, times(1))
-                .isFindBooking(anyLong(), anyLong(), any(LocalDateTime.class));
-        inOrder.verify(commentRepository, never()).save(any(Comment.class));
+    void saveComment_whenUserTrulyBookedItem_thenReturnSavedComment() {
+        //given
+        ItemDto itemDto = createItem();
+        User user = createUser();
+        Item item = ItemMapper.toItem(itemDto, user);
+        CommentDto commentDto = CommentMapper.mapToCommentDto(getComments(item).get(0));
+        Booking booking = getBookings(item).get(0);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
+        when(bookingRepository.findByBookerIdAndEndIsBefore(anyLong(), any(), any())).thenReturn(List.of(booking));
+        //when
+        itemService.saveComment(commentDto);
+        //then
+        verify(commentRepository, times(1)).save(any());
     }
 
+    private List<Booking> getBookings(Item item) {
+        User user = createUser();
+        user.setId(2L);
+
+        Booking booking1 = new Booking();
+        booking1.setId(1L);
+        booking1.setStart(LocalDateTime.now().minusDays(5));
+        booking1.setEnd(LocalDateTime.now().minusDays(4));
+        booking1.setItem(item);
+        booking1.setStatus(Status.APPROVED);
+        booking1.setBooker(user);
+
+        Booking booking2 = new Booking();
+        booking2.setId(2L);
+        booking2.setStart(LocalDateTime.now().minusDays(3));
+        booking2.setEnd(LocalDateTime.now().minusDays(2));
+        booking2.setItem(item);
+        booking2.setStatus(Status.REJECTED);
+        booking2.setBooker(user);
+
+        Booking booking3 = new Booking();
+        booking3.setId(3L);
+        booking3.setStart(LocalDateTime.now().plusDays(1));
+        booking3.setEnd(LocalDateTime.now().plusDays(2));
+        booking3.setItem(item);
+        booking3.setStatus(Status.APPROVED);
+        booking3.setBooker(user);
+
+        Booking booking4 = new Booking();
+        booking4.setId(4L);
+        booking4.setStart(LocalDateTime.now().plusDays(3));
+        booking4.setEnd(LocalDateTime.now().plusDays(4));
+        booking4.setItem(item);
+        booking4.setStatus(Status.APPROVED);
+        booking4.setBooker(user);
+
+        return List.of(booking1, booking2, booking3, booking4);
+    }
+
+    private List<Comment> getComments(Item item) {
+        User user = createUser();
+        user.setId(2L);
+
+        Comment comment1 = new Comment();
+        comment1.setId(1L);
+        comment1.setItem(item);
+        comment1.setText("мощный агрегат");
+        comment1.setUser(user);
+        comment1.setCreated(LocalDateTime.now());
+
+        Comment comment2 = new Comment();
+        comment1.setId(2L);
+        comment2.setItem(item);
+        comment2.setText("тяжеловат");
+        comment2.setUser(user);
+        comment2.setCreated(LocalDateTime.now());
+
+
+        return List.of(comment1, comment2);
+
+    }
 }
