@@ -1,85 +1,74 @@
 package ru.practicum.shareit.booking;
 
-import ru.practicum.shareit.booking.dto.BookingInDto;
-import ru.practicum.shareit.booking.dto.BookingOutDto;
-import ru.practicum.shareit.booking.model.StateBooking;
-import ru.practicum.shareit.booking.service.BookingService;
-
-import java.util.List;
-import javax.validation.Valid;
-
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.booking.dto.BookingInDto;
+import ru.practicum.shareit.booking.dto.BookingOutDto;
+import ru.practicum.shareit.exceptions.UnknownStateException;
+
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping(path = "/bookings")
-@Slf4j
+@RequiredArgsConstructor
+@Validated
 public class BookingController {
-    private final String xSharerUserId = "X-Sharer-User-Id";
     private final BookingService bookingService;
 
-    /**
-     * Получение списка всех бронирований текущего пользователя
-     */
-    @GetMapping
-    public ResponseEntity<List<BookingOutDto>> getAllBookingsByUser(
-            @RequestHeader(xSharerUserId) Long userId,
-            @RequestParam(defaultValue = "ALL") StateBooking state) {
-        List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsByUser(userId, state);
-        log.info("Получен список всех бронирований текущего пользователя с id = {}, количество = {}.",
-                userId, bookingOutDtos.size());
-        return ResponseEntity.ok().body(bookingOutDtos);
-    }
-
-    /**
-     * Получение списка бронирований для всех вещей текущего пользователя
-     */
-    @GetMapping("/owner")
-    public ResponseEntity<List<BookingOutDto>> getAllBookingsAllItemsByOwner(
-            @RequestHeader(xSharerUserId) Long userId,
-            @RequestParam(defaultValue = "ALL") StateBooking state) {
-        List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsAllItemsByOwner(userId, state);
-        log.info("Получен список всех бронирований для всех вещей текущего пользователя с id = {}, " +
-                "количество = {}.", userId, bookingOutDtos.size());
-        return ResponseEntity.ok().body(bookingOutDtos);
-    }
-
-    /**
-     * Получение данных о конкретном бронировании
-     */
-    @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingOutDto> getBookingById(@PathVariable Long bookingId,
-                                                        @RequestHeader(xSharerUserId) Long userId) {
-        BookingOutDto bookingOutDto = bookingService.getBookingById(userId, bookingId);
-        log.info("Получено бронирование с id = {}.", bookingId);
-        return ResponseEntity.ok(bookingOutDto);
-    }
-
-    /**
-     * Добавление нового запроса на бронирование
-     */
     @PostMapping
-    @Validated
-    public ResponseEntity<BookingOutDto> saveBooking(@Valid @RequestBody BookingInDto bookingInDto,
-                                                     @RequestHeader(xSharerUserId) Long userId) {
-        BookingOutDto bookingOutDto = bookingService.saveBooking(bookingInDto, userId);
-        log.info("Добавлен новый запрос на бронирование: {}", bookingOutDto);
-        return ResponseEntity.ok(bookingOutDto);
+    public BookingOutDto saveBooking(@Valid @RequestBody BookingInDto bookingDto,
+                                     @RequestHeader("X-Sharer-User-Id") Long userId) {
+        bookingDto.setBookerId(userId);
+        return bookingService.saveBooking(bookingDto);
     }
 
-    /**
-     * Подтверждение или отклонение запроса на бронирование
-     */
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<BookingOutDto> updateItem(@PathVariable Long bookingId, @RequestParam Boolean approved,
-                                                    @RequestHeader(xSharerUserId) Long userId) {
-        BookingOutDto bookingOutDto = bookingService.updateBooking(bookingId, approved, userId);
-        log.info("Обновлено бронирование: {}.", bookingOutDto);
-        return ResponseEntity.ok(bookingOutDto);
+    public BookingOutDto setStatus(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                   @PathVariable(name = "bookingId") Long bookingId,
+                                   @RequestParam(name = "approved") Boolean isApproved) {
+        return bookingService.setStatus(bookingId, userId, isApproved);
     }
 
+    @GetMapping("/{bookingId}")
+    public BookingOutDto getBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                    @PathVariable(name = "bookingId") Long bookingId) {
+        return bookingService.getBooking(userId, bookingId);
+    }
+
+    @GetMapping
+    public List<BookingOutDto> findAllBookingsByState(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                      @RequestParam(name = "state", defaultValue = "ALL") String strState,
+                                                      @RequestParam(name = "from", defaultValue = "0") @Min(0) int from,
+                                                      @RequestParam(name = "size", defaultValue = "10") @Min(1) int size) {
+        State state;
+        try {
+            state = State.valueOf(strState);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownStateException(strState);
+        }
+        return bookingService.findAllBookingsByState(userId, state, from, size);
+    }
+
+    @GetMapping("/owner")
+    public List<BookingOutDto> findAllOwnerBookingsByState(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                           @RequestParam(name = "state", defaultValue = "ALL") String strState,
+                                                           @RequestParam(name = "from", defaultValue = "0") @Min(0) int from,
+                                                           @RequestParam(name = "size", defaultValue = "10") @Min(1) int size) {
+        State state;
+        try {
+            state = State.valueOf(strState);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownStateException(strState);
+        }
+        return bookingService.findAllOwnerBookingsByState(userId, state, from, size);
+    }
+
+
+    @GetMapping("/item/{itemId}")
+    public List<BookingOutDto> findAllBookingsOfItem(@PathVariable(name = "itemId") Long itemId) {
+        return bookingService.findAllBookingsOfItem(itemId);
+    }
 }

@@ -5,22 +5,16 @@ import lombok.Setter;
 import lombok.ToString;
 import ru.practicum.shareit.booking.Status;
 
-import javax.validation.constraints.Future;
-import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @ToString
 @Getter
 @Setter
-public class BookingInDto {
+public class BookingIdOutDto {
     private Long id;
 
-    @Future
-    @NotNull
     private LocalDateTime start;
 
-    @Future
-    @NotNull
     private LocalDateTime end;
 
     private Long itemId;

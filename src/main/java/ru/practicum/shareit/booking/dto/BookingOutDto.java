@@ -1,21 +1,29 @@
 package ru.practicum.shareit.booking.dto;
 
-import ru.practicum.shareit.booking.model.StatusBooking;
-import ru.practicum.shareit.item.dto.ItemDtoShort;
-import ru.practicum.shareit.user.dto.UserDtoShort;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import ru.practicum.shareit.booking.Status;
+import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
 
-import lombok.Data;
-
-@Data
+@ToString
+@EqualsAndHashCode
+@Getter
+@Setter
 public class BookingOutDto {
-
     private Long id;
-    private LocalDateTime start;
-    private LocalDateTime end;
-    private ItemDtoShort item;
-    private UserDtoShort booker;
-    private StatusBooking status;
 
+    private LocalDateTime start;
+
+    private LocalDateTime end;
+
+    private Item item;
+
+    private User booker;
+
+    private Status status;
 }
