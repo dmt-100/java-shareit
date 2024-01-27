@@ -1,148 +1,215 @@
 package ru.practicum.shareit.item;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.booking.dto.BookingIdOutDto;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.service.ItemServiceImpl;
+import ru.practicum.shareit.item.dto.ItemMapper;
+import ru.practicum.shareit.user.User;
 
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(controllers = ItemController.class)
 class ItemControllerTest {
+    @Autowired
+    private ObjectMapper mapper;
 
-    @Mock
-    private ItemServiceImpl itemService;
+    @Autowired
+    private MockMvc mvc;
 
-    @InjectMocks
-    private ItemController itemController;
+    @MockBean
+    private ItemService itemService;
 
-    @Test
-    @DisplayName("получены все вещи пользователя, когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllItemsByUser_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<ItemDto>> response = itemController.getAllItemsByUser(userId, 0, 0);
+    private ItemDto itemDto;
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(itemService, times(1)).getAllItemsByUser(userId, 0, 0);
+    private CommentDto commentDto;
+
+    @BeforeEach
+    void setUp() {
+        itemDto = new ItemDto();
+        itemDto.setOwner(1L);
+        itemDto.setName("Отвертка");
+        itemDto.setDescription("Крестовая");
+        itemDto.setAvailable(true);
+        itemDto.setId(1L);
+        itemDto.setRequestId(null);
+
+        commentDto = new CommentDto();
+        commentDto.setAuthorName("Akhra");
+        commentDto.setText("отлично!");
+        commentDto.setId(1L);
+        commentDto.setCreated(LocalDateTime.now());
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("получены все вещи пользователя, когда вызваны, то ответ статус ок и непустое тело")
-    void getAllItemsByUser_whenInvoked_thenResponseStatusOkWithItemsCollectionInBody() {
-        Long userId = 0L;
-        List<ItemDto> expectedItems = Arrays.asList(new ItemDto());
-        when(itemService.getAllItemsByUser(userId, 0, 0)).thenReturn(expectedItems);
-
-        ResponseEntity<List<ItemDto>> response = itemController.getAllItemsByUser(userId, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItems, equalTo(response.getBody()));
-        verify(itemService, times(1)).getAllItemsByUser(userId, 0, 0);
+    void saveItem_whenItemIsNotValid_thenMethodArgumentNotValidExceptionThrown() {
+        itemDto.setAvailable(null);
+        //when
+        mvc.perform(post("/items")
+                        .content(mapper.writeValueAsString(itemDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isBadRequest());
+        verify(itemService, never()).saveItem(any(), any());
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("получена вещь по ид, когда вещь найдена, то ответ статус ок, и она возвращается")
-    void getItemById_whenItemFound_thenReturnedItem() {
-        long itemId = 0L;
-        long userId = 0L;
-        ItemDto expectedItem = new ItemDto();
-        when(itemService.getItemById(itemId, userId)).thenReturn(expectedItem);
-
-        ResponseEntity<ItemDto> response = itemController.getItemById(itemId, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItem, equalTo(response.getBody()));
-        verify(itemService, times(1)).getItemById(itemId, userId);
+    void saveItem() {
+        when(itemService.saveItem(any(), anyLong()))
+                .thenReturn(itemDto);
+        //when
+        String savedItem = mvc.perform(post("/items")
+                        .content(mapper.writeValueAsString(itemDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(itemDto), equalTo(savedItem));
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("сохранена вещь, когда вещь валидна, то ответ статус ок, и она сохраняется")
-    void saveItem_whenItemValid_thenSavedItem() {
-        ItemDto expectedItem = new ItemDto();
-        long userId = 0L;
-        when(itemService.saveItem(expectedItem, userId)).thenReturn(expectedItem);
-
-        ResponseEntity<ItemDto> response = itemController.saveItem(expectedItem, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItem, equalTo(response.getBody()));
-        verify(itemService, times(1)).saveItem(expectedItem, userId);
+    void patchItem() {
+        when(itemService.patchItem(any(), anyLong()))
+                .thenReturn(itemDto);
+        //when
+        String savedItem = mvc.perform(patch("/items/{id}", itemDto.getId())
+                        .content(mapper.writeValueAsString(itemDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(itemDto), equalTo(savedItem));
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("обновлена вещь, когда вещь валидна, то ответ статус ок, и она обновляется")
-    void updateItem_whenItemValid_thenUpdatedItem() {
-        Long itemId = 0L;
-        Long userId = 0L;
-        ItemDto newItem = new ItemDto();
-        newItem.setName("2");
-        newItem.setDescription("2");
-        newItem.setAvailable(true);
-        when(itemService.updateItem(itemId, newItem, userId)).thenReturn(newItem);
-
-        ResponseEntity<ItemDto> response = itemController.updateItem(itemId, newItem, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(newItem, equalTo(response.getBody()));
-        verify(itemService, times(1)).updateItem(itemId, newItem, userId);
+    void getItemById() {
+        when(itemService.getItemById(anyLong(), anyLong()))
+                .thenReturn(ItemMapper.toItemWithBookAndCommentsDto(
+                        ItemMapper.toItem(itemDto, new User()),
+                        new BookingIdOutDto(),
+                        new BookingIdOutDto(),
+                        List.of(new CommentDto())));
+        //when
+        mvc.perform(get("/items/{id}", itemDto.getId())
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(itemDto.getId()), Long.class))
+                .andExpect(jsonPath("$.name", is(itemDto.getName())))
+                .andExpect(jsonPath("$.description", is(itemDto.getDescription())));
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("получены вещи потенциальным арендатором по тексту, когда вызваны по умолчанию, " +
-            "то ответ статус ок и пустое тело")
-    void findItems_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<ItemDto>> response = itemController.findItems("", userId, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(itemService, times(1)).findItems("", userId, 0, 0);
+    void getItemsOfUser() {
+        when(itemService.getItemsOfUser(anyLong(), anyInt(), anyInt()))
+                .thenReturn(List.of(ItemMapper.toItemWithBookAndCommentsDto(
+                        ItemMapper.toItem(itemDto, new User()),
+                        new BookingIdOutDto(),
+                        new BookingIdOutDto(),
+                        List.of(new CommentDto()))));
+        //when
+        mvc.perform(get("/items")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id", is(itemDto.getId()), Long.class))
+                .andExpect(jsonPath("$[0].name", is(itemDto.getName())))
+                .andExpect(jsonPath("$[0].description", is(itemDto.getDescription())));
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("получены вещи потенциальным арендатором по тексту, когда вызваны, " +
-            "то ответ статус ок и непустое тело")
-    void findItems_whenInvoked_thenResponseStatusOkWithItemsCollectionInBody() {
-        Long userId = 0L;
-        List<ItemDto> expectedItems = Arrays.asList(new ItemDto());
-        Mockito.when(itemService.findItems("", userId, 0, 0)).thenReturn(expectedItems);
-
-        ResponseEntity<List<ItemDto>> response = itemController.findItems("", userId, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItems, equalTo(response.getBody()));
-        verify(itemService, times(1)).findItems("", userId, 0, 0);
+    void searchItems() {
+        when(itemService.searchItems(anyString(), anyInt(), anyInt()))
+                .thenReturn(List.of(itemDto));
+        //when
+        mvc.perform(get("/items/search?text={}:from={}:size={}", "ерт", "0", "10")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header("X-Sharer-User-Id", 1)
+                        .param("text", "ерт", "from", "0", "size", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id", is(itemDto.getId()), Long.class))
+                .andExpect(jsonPath("$[0].name", is(itemDto.getName())))
+                .andExpect(jsonPath("$[0].description", is(itemDto.getDescription())));
     }
 
+    @SneakyThrows
     @Test
-    @DisplayName("сохранен комментарий, когда коммент валиден, то ответ статус ок, и он сохраняется")
-    void saveComment_whenCommentValid_thenSavedComment() {
-        CommentDto expectedComment = new CommentDto();
-        long itemId = 0L;
-        long userId = 0L;
-        when(itemService.saveComment(expectedComment, itemId, userId)).thenReturn(expectedComment);
-
-        ResponseEntity<CommentDto> response = itemController.saveComment(expectedComment, itemId, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedComment, equalTo(response.getBody()));
-        verify(itemService, times(1)).saveComment(expectedComment, itemId, userId);
+    void saveComment_whenCommentIsNotValid_thenMethodArgumentNotValidExceptionThrown() {
+        //given
+        commentDto.setText("   ");
+        //when
+        mvc.perform(post("/items/{itemId}/comment", 1L)
+                        .content(mapper.writeValueAsString(commentDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isBadRequest());
+        verify(itemService, never()).saveComment(any());
     }
 
+    @SneakyThrows
+    @Test
+    void saveComment() {
+        when(itemService.saveComment(any()))
+                .thenReturn(commentDto);
+        //when
+        String savedComment = mvc.perform(post("/items/{itemId}/comment", 1L)
+                        .content(mapper.writeValueAsString(commentDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                //then
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertThat(mapper.writeValueAsString(commentDto), equalTo(savedComment));
+    }
 }

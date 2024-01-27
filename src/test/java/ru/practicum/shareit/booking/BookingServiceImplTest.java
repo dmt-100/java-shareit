@@ -1,795 +1,416 @@
 package ru.practicum.shareit.booking;
 
-import ru.practicum.shareit.booking.dto.BookingInDto;
-import ru.practicum.shareit.booking.dto.BookingOutDto;
-import ru.practicum.shareit.booking.exception.BookingNotFoundException;
-import ru.practicum.shareit.booking.exception.BookingNotSaveException;
-import ru.practicum.shareit.booking.exception.BookingNotUpdateException;
-import ru.practicum.shareit.booking.exception.BookingOtherBookerException;
-import ru.practicum.shareit.booking.mapper.BookingMapper;
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.booking.model.StateBooking;
-import ru.practicum.shareit.booking.model.StatusBooking;
-import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.booking.service.BookingServiceImpl;
-import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.exception.ItemNotFoundException;
-import ru.practicum.shareit.item.exception.ItemOtherOwnerException;
-import ru.practicum.shareit.item.mapper.ItemMapper;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.exception.UserNotFoundException;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repository.UserRepository;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import com.querydsl.core.types.dsl.BooleanExpression;
+import ru.practicum.shareit.booking.dto.BookingInDto;
+import ru.practicum.shareit.booking.dto.BookingMapper;
+import ru.practicum.shareit.booking.dto.BookingOutDto;
+import ru.practicum.shareit.exceptions.BookingBadRequestException;
+import ru.practicum.shareit.exceptions.ContentNotFountException;
+import ru.practicum.shareit.item.Item;
+import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceImplTest {
-
     @Mock
     private BookingRepository bookingRepository;
     @Mock
     private ItemRepository itemRepository;
     @Mock
     private UserRepository userRepository;
-
     @InjectMocks
     private BookingServiceImpl bookingService;
+    @Captor
+    private ArgumentCaptor<Booking> bookingArgumentCaptor;
 
     @Test
-    @DisplayName("получены все бронирования, когда вызваны по умолчанию, то получен пустой список")
-    void getAllBookingsByUser_whenInvoked_thenReturnedEmptyList() {
-        Long userId = 0L;
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-
-        List<BookingOutDto> actualItems = bookingService
-                .getAllBookingsByUser(userId, StateBooking.ALL, 0, 1);
-
-        assertThat(actualItems, empty());
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findByBookerIdOrderByEndDesc(anyLong(), any(Pageable.class));
+    void saveBooking_whenItemNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        BookingInDto notCreatedItemBooking = BookingMapper.mapToBookingInDto(booking);
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.saveBooking(notCreatedItemBooking));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования, когда вызваны текущие, то получен непустой список")
-    void getAllBookingsByUser_whenInvokedCurrent_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(
-                anyLong(), any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class)))
-                .thenReturn(expectedBookings);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsByUser(userId, StateBooking.CURRENT, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookings),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(anyLong(),
-                        any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class));
+    void saveBooking_whenOwnerIsBooker_thenContentNotFountExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        booking.setBooker(createUser());
+        BookingInDto ownerIsBookerBooking = BookingMapper.mapToBookingInDto(booking);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(booking.getItem()));
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.saveBooking(ownerIsBookerBooking));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования, когда вызваны прошедшие, то получен непустой список")
-    void getAllBookingsByUser_whenInvokedPast_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findByBookerIdAndEndIsBefore(
-                anyLong(), any(LocalDateTime.class), any(Pageable.class))).thenReturn(expectedBookings);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsByUser(userId, StateBooking.PAST, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookings),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findByBookerIdAndEndIsBefore(anyLong(), any(LocalDateTime.class), any(Pageable.class));
+    void saveBooking_whenItemNotAvailable_thenBookingBadRequestExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        booking.getItem().setAvailable(false);
+        BookingInDto unavailableItemBooking = BookingMapper.mapToBookingInDto(booking);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(booking.getItem()));
+        //when
+        Assertions.assertThrows(
+                BookingBadRequestException.class,
+                () -> bookingService.saveBooking(unavailableItemBooking));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования, когда вызваны будущие, то получен непустой список")
-    void getAllBookingsByUser_whenInvokedFuture_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findByBookerIdAndEndIsAfter(
-                anyLong(), any(LocalDateTime.class), any(Pageable.class))).thenReturn(expectedBookings);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsByUser(userId, StateBooking.FUTURE, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookings),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findByBookerIdAndEndIsAfter(anyLong(), any(LocalDateTime.class), any(Pageable.class));
+    void saveBooking_whenBookingTimeIsWrong_thenBookingBadRequestExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        booking.setStart(LocalDateTime.now().plusDays(100));
+        BookingInDto wrongTimeBooking = BookingMapper.mapToBookingInDto(booking);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(booking.getItem()));
+        //when
+        Assertions.assertThrows(
+                BookingBadRequestException.class,
+                () -> bookingService.saveBooking(wrongTimeBooking));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования, когда вызваны ожидающие подтверждение, " +
-            "то получен непустой список")
-    void getAllBookingsByUser_whenInvokedWaiting_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findByBookerIdAndStatusOrderByEndDesc(
-                anyLong(), any(), any(Pageable.class))).thenReturn(expectedBookings);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsByUser(userId, StateBooking.WAITING, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookings),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findByBookerIdAndStatusOrderByEndDesc(anyLong(), any(), any(Pageable.class));
+    void saveBooking_whenItemAlreadyBooked_thenContentNotFountExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        BookingInDto unavailableDtesBooking = BookingMapper.mapToBookingInDto(booking);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(booking.getItem()));
+        when(bookingRepository.findTimeCrossingBookings(anyLong(), any(), any())).thenReturn(List.of(booking));
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.saveBooking(unavailableDtesBooking));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования, когда вызваны отклоненные, " +
-            "то получен непустой список")
-    void getAllBookingsByUser_whenInvokedRejected_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findByBookerIdAndStatusOrderByEndDesc(
-                anyLong(), any(), any(Pageable.class))).thenReturn(expectedBookings);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsByUser(userId, StateBooking.REJECTED, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookings),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findByBookerIdAndStatusOrderByEndDesc(anyLong(), any(), any(Pageable.class));
+    void saveBooking_whenUserNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        BookingInDto uncreatedUserBooking = BookingMapper.mapToBookingInDto(booking);
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(booking.getItem()));
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.saveBooking(uncreatedUserBooking));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования, когда пользователь не найден, то выброшено исключение")
-    void getAllBookingsByUser_whenUserNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+    void saveBooking_whenUserAndItemFoundAndNoTimeCrossing_thenReturnSavedBooking() {
+        //given
+        Booking booking = createBooking();
+        BookingInDto bookingInDto = BookingMapper.mapToBookingInDto(booking);
 
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> bookingService.getAllBookingsByUser(userId, StateBooking.REJECTED, 0, 1));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, never())
-                .findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(anyLong(),
-                        any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class));
+        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(booking.getItem()));
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        when(bookingRepository.save(any())).thenReturn(booking);
+        //when
+        bookingService.saveBooking(bookingInDto);
+        //then
+        verify(bookingRepository, times(1)).save(bookingArgumentCaptor.capture());
+        Booking savedBooking = bookingArgumentCaptor.getValue();
+        assertThat(savedBooking.getStatus(), equalTo(Status.WAITING));
     }
 
     @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда вызваны все, то получен непустой список")
-    void getAllBookingsAllItemsByOwner_whenInvokedAll_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
-        Page<Booking> expectedBookingsPage = new PageImpl<>(
-                expectedBookingsList, PageRequest.of(0, 1), 2);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findAll(any(BooleanExpression.class), any(Pageable.class)))
-                .thenReturn(expectedBookingsPage);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookingsList),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
+    void setStatus_whenBookingNotFound_thenContentNotFountExceptionThrown() {
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.empty());
+        Long uncreatedBookingId = 1L;
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.setStatus(uncreatedBookingId, 1L, true));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда вызваны текущие, то получен непустой список")
-    void getAllBookingsAllItemsByOwner_whenInvokedCurrent_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
-        Page<Booking> expectedBookingsPage = new PageImpl<>(
-                expectedBookingsList, PageRequest.of(0, 1), 2);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findAll(any(BooleanExpression.class), any(Pageable.class)))
-                .thenReturn(expectedBookingsPage);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.CURRENT, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookingsList),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
+    void setStatus_whenUserIsNotOwnerOfItem_thenContentNotFountExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        Long bookingId = 1L;
+        Long userNotOwnerOfItemId = 2L;
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        //when
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.setStatus(bookingId, userNotOwnerOfItemId, true));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда вызваны прошедшие, то получен непустой список")
-    void getAllBookingsAllItemsByOwner_whenInvokedPast_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
-        Page<Booking> expectedBookingsPage = new PageImpl<>(
-                expectedBookingsList, PageRequest.of(0, 1), 2);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findAll(any(BooleanExpression.class), any(Pageable.class)))
-                .thenReturn(expectedBookingsPage);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.PAST, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookingsList),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
+    void setStatus_whenStatusAlreadySetInGivenValue_thenBookingBadRequestExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        Boolean alreadySetStatus = true;
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        //when
+        Assertions.assertThrows(
+                BookingBadRequestException.class,
+                () -> bookingService.setStatus(1L, 1L, alreadySetStatus));
+        //then
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда вызваны будущие, то получен непустой список")
-    void getAllBookingsAllItemsByOwner_whenInvokedFuture_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
-        Page<Booking> expectedBookingsPage = new PageImpl<>(
-                expectedBookingsList, PageRequest.of(0, 1), 2);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findAll(any(BooleanExpression.class), any(Pageable.class)))
-                .thenReturn(expectedBookingsPage);
+    void setStatus_whenBookingFoundAndUserIsOwner_thenReturnUpdatedUser() {
+        //given
+        Booking booking = createBooking();
+        booking.setStatus(Status.WAITING);
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any())).thenReturn(booking);
 
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.FUTURE, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookingsList),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
+        bookingService.setStatus(1L, 1L, true);
+        //when
+        verify(bookingRepository, times(1)).save(bookingArgumentCaptor.capture());
+        Booking savedBooking = bookingArgumentCaptor.getValue();
+        //then
+        verify(bookingRepository, times(1)).save(any());
+        assertThat(savedBooking.getId(), equalTo(1L));
+        assertThat(savedBooking.getStatus(), equalTo(Status.APPROVED));
     }
 
     @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда вызваны ожидающий подтверждение, то получен непустой список")
-    void getAllBookingsAllItemsByOwner_whenInvokedWaiting_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
-        Page<Booking> expectedBookingsPage = new PageImpl<>(
-                expectedBookingsList, PageRequest.of(0, 1), 2);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findAll(any(BooleanExpression.class), any(Pageable.class)))
-                .thenReturn(expectedBookingsPage);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.WAITING, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookingsList),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
-    }
-
-    @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда вызваны отклоненные, то получен непустой список")
-    void getAllBookingsAllItemsByOwner_whenInvokedRejected_thenReturnedBookingsCollectionInList() {
-        Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
-        Page<Booking> expectedBookingsPage = new PageImpl<>(
-                expectedBookingsList, PageRequest.of(0, 1), 2);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
-        when(bookingRepository.findAll(any(BooleanExpression.class), any(Pageable.class)))
-                .thenReturn(expectedBookingsPage);
-
-        List<BookingOutDto> actualBookings = bookingService
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.REJECTED, 0, 1);
-
-        assertThat(BookingMapper.INSTANCE.convertBookingListToBookingOutDTOList(expectedBookingsList),
-                equalTo(actualBookings));
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1))
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
-    }
-
-    @Test
-    @DisplayName("получены все бронирования для вещей владельца, " +
-            "когда пользователь не найден, то выброшено исключение")
-    void getAllBookingsAllItemsByOwner_whenUserNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> bookingService.getAllBookingsAllItemsByOwner(userId, StateBooking.REJECTED, 0, 1));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-
-        InOrder inOrder = inOrder(userRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, never())
-                .findAll(any(BooleanExpression.class), any(Pageable.class));
-    }
-
-    @Test
-    @DisplayName("получено бронирование по ид, когда бронирование найдено, тогда оно возвращается")
-    void getBookingById_whenBookingFound_thenReturnedItem() {
-        long bookingId = 0L;
-        long userId = 0L;
-        Booking expectedBooking = new Booking();
-        User user = new User();
-        user.setId(userId);
-        expectedBooking.setBooker(user);
-        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(expectedBooking));
-
-        BookingOutDto actualBooking = bookingService.getBookingById(bookingId, userId);
-
-        assertThat(BookingMapper.INSTANCE.toBookingOutDto(expectedBooking), equalTo(actualBooking));
-        verify(bookingRepository, times(1)).findById(bookingId);
-    }
-
-    @Test
-    @DisplayName("получено бронирование по ид, когда бронирование не найдено, " +
-            "тогда выбрасывается исключение")
-    void getBookingById_whenBookingNotFound_thenExceptionThrown() {
-        long bookingId = 0L;
-        when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
-
-        final BookingNotFoundException exception = assertThrows(BookingNotFoundException.class,
-                () -> bookingService.getBookingById(bookingId, 0L));
-
-        assertThat("Бронирование с идентификатором 0 не найдено.", equalTo(exception.getMessage()));
-        verify(bookingRepository, times(1)).findById(bookingId);
-    }
-
-    @Test
-    @DisplayName("получено бронирование по ид, когда бронирование не валидно, " +
-            "тогда выбрасывается исключение")
-    void getBookingById_whenBookingNotValid_thenExceptionThrown() {
-        long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Item item = new Item();
-        item.setOwner(user);
-
-        long bookingId = 0L;
-        Booking expectedBooking = new Booking();
-        expectedBooking.setItem(item);
-        expectedBooking.setBooker(user);
-        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(expectedBooking));
-
-        final BookingOtherBookerException exception = assertThrows(BookingOtherBookerException.class,
-                () -> bookingService.getBookingById(bookingId, 1L));
-
-        assertThat("Пользователь с id = 1 не осуществлял бронирование с id = 0",
-                equalTo(exception.getMessage()));
-        verify(bookingRepository, times(1)).findById(anyLong());
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда бронирование валидно, тогда оно сохраняется")
-    void saveBooking_whenBookingValid_thenSavedBooking() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(1L);
-        Item item = new Item();
-        Long itemId = 0L;
-        item.setId(itemId);
-        item.setAvailable(true);
-        item.setOwner(user);
-
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().plusMinutes(1));
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-        when(bookingRepository.save(any(Booking.class)))
-                .thenReturn(BookingMapper.INSTANCE.toBooking(bookingToSave, user, item));
-
-        BookingOutDto actualBooking = bookingService.saveBooking(bookingToSave, userId);
-
-        assertThat(bookingToSave.getId(), equalTo(actualBooking.getId()));
-        assertThat(bookingToSave.getStart(), equalTo(actualBooking.getStart()));
-        assertThat(bookingToSave.getEnd(), equalTo(actualBooking.getEnd()));
-        assertThat(bookingToSave.getItemId(), equalTo(actualBooking.getItem().getId()));
-        assertThat(1L, equalTo(actualBooking.getBooker().getId()));
-        assertThat(null, equalTo(actualBooking.getStatus()));
-
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(userId);
-        inOrder.verify(itemRepository, times(1)).findById(itemId);
-        inOrder.verify(bookingRepository, times(1)).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда дата и время не валидны 1, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenDateTimeNotValid1_thenExceptionThrown() {
-        Long userId = 0L;
-        Long itemId = 0L;
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().minusMinutes(1));
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Ошибка! Дата и время начала бронирования должны быть раньше даты и времени " +
-                "конца бронирования. Код ошибки: 30001", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, never()).findById(anyLong());
-        inOrder.verify(itemRepository, never()).findById(anyLong());
-        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда дата и время не валидны 2, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenDateTimeNotValid2_thenExceptionThrown() {
-        Long userId = 0L;
-        Long itemId = 0L;
-        LocalDateTime dateTimeBooking = LocalDateTime.now();
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(dateTimeBooking);
-        bookingToSave.setEnd(dateTimeBooking);
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Ошибка! Дата и время начала бронирования не могут совпадать с датой и временем " +
-                "конца бронирования. Код ошибки: 30002", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, never()).findById(anyLong());
-        inOrder.verify(itemRepository, never()).findById(anyLong());
-        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда пользователь не найден, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenUserNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        Long itemId = 0L;
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().plusMinutes(1));
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(itemRepository, never()).findById(anyLong());
-        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда вещь не найдена, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenItemNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        Long itemId = 0L;
-
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().plusMinutes(1));
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Вещь с идентификатором 0 не найдена.", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
-    }
-
-
-    @Test
-    @DisplayName("сохранено бронирование, когда вещь не валидна, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenItemNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        Item item = new Item();
-        Long itemId = 0L;
-        item.setAvailable(false);
-
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().plusMinutes(1));
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Ошибка! Вещь: " + ItemMapper.INSTANCE.toItemDto(item) +
-                " недоступна для бронирования. Код ошибки: 30003", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда владелец не валиден, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenOwnerNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Long itemId = 0L;
-        Item item = new Item();
-        item.setId(itemId);
-        item.setAvailable(true);
-        item.setOwner(user);
-
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().plusMinutes(1));
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-
-        final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Пользователь с id = 0 владелец вещи с id = 0", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, never()).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда бронирование не сохранено, " +
-            "тогда выбрасывается исключение")
-    void saveBooking_whenBookingNotSaved_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(1L);
-        Item item = new Item();
-        Long itemId = 0L;
-        item.setAvailable(true);
-        item.setOwner(user);
-
-        BookingInDto bookingToSave = new BookingInDto();
-        bookingToSave.setItemId(itemId);
-        bookingToSave.setStart(LocalDateTime.now());
-        bookingToSave.setEnd(LocalDateTime.now().plusMinutes(1));
-
-        when(userRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
-        when(bookingRepository.save(any(Booking.class)))
-                .thenThrow(new BookingNotSaveException("Бронирование не было создано"));
-
-        final BookingNotSaveException exception = assertThrows(BookingNotSaveException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
-
-        assertThat("Бронирование не было создано", equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
-        inOrder.verify(userRepository, times(1)).findById(anyLong());
-        inOrder.verify(itemRepository, times(1)).findById(anyLong());
-        inOrder.verify(bookingRepository, times(1)).save(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("обновлено бронирование, когда бронирование подтверждено, тогда оно обновляется")
-    void updateBooking_whenBookingApproved_thenUpdatedBooking() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Item item = new Item();
-        item.setOwner(user);
-
-        Long bookingId = 0L;
-        Booking oldBooking = new Booking();
-        oldBooking.setItem(item);
-        oldBooking.setStatus(StatusBooking.WAITING);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
-
-        Booking newBooking = new Booking();
-        newBooking.setStatus(StatusBooking.APPROVED);
-        when(bookingRepository.saveAndFlush(any(Booking.class))).thenReturn(newBooking);
-
-        BookingOutDto actualBooking = bookingService.updateBooking(bookingId, true, userId);
-
-        assertThat(newBooking.getId(), equalTo(actualBooking.getId()));
-        assertThat(newBooking.getStart(), equalTo(actualBooking.getStart()));
-        assertThat(newBooking.getEnd(), equalTo(actualBooking.getEnd()));
-        assertThat(newBooking.getItem(), equalTo(actualBooking.getItem()));
-        assertThat(newBooking.getBooker(), equalTo(actualBooking.getBooker()));
-        assertThat(newBooking.getStatus(), equalTo(actualBooking.getStatus()));
-
-        verify(bookingRepository, times(1)).findById(anyLong());
-        verify(bookingRepository, times(1)).saveAndFlush(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("обновлено бронирование, когда бронирование отклонено, тогда оно обновляется")
-    void updateBooking_whenBookingRejected_thenUpdatedBooking() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Item item = new Item();
-        item.setOwner(user);
-
-        Long bookingId = 0L;
-        Booking oldBooking = new Booking();
-        oldBooking.setItem(item);
-        oldBooking.setStatus(StatusBooking.WAITING);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
-
-        Booking newBooking = new Booking();
-        newBooking.setStatus(StatusBooking.REJECTED);
-        when(bookingRepository.saveAndFlush(any(Booking.class))).thenReturn(newBooking);
-
-        BookingOutDto actualBooking = bookingService.updateBooking(bookingId, false, userId);
-
-        assertThat(newBooking.getId(), equalTo(actualBooking.getId()));
-        assertThat(newBooking.getStart(), equalTo(actualBooking.getStart()));
-        assertThat(newBooking.getEnd(), equalTo(actualBooking.getEnd()));
-        assertThat(newBooking.getItem(), equalTo(actualBooking.getItem()));
-        assertThat(newBooking.getBooker(), equalTo(actualBooking.getBooker()));
-        assertThat(newBooking.getStatus(), equalTo(actualBooking.getStatus()));
-
-        verify(bookingRepository, times(1)).findById(anyLong());
-        verify(bookingRepository, times(1)).saveAndFlush(any(Booking.class));
-    }
-
-    @Test
-    @DisplayName("обновлено бронирование, когда бронирование не найдено, тогда выбрасывается исключение")
-    void updateBooking_whenBookingNotFound_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(1L);
-        Item item = new Item();
-        item.setOwner(user);
-        Long bookingId = 0L;
-        Booking oldBooking = new Booking();
-        oldBooking.setItem(item);
+    void getBooking_whenBookingNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        Long uncreatedBookingId = 1L;
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        final BookingNotFoundException exception = assertThrows(BookingNotFoundException.class,
-                () -> bookingService.updateBooking(bookingId, true, userId));
-
-        assertThat("Бронирование с id = 0 не найдено.", equalTo(exception.getMessage()));
-        verify(bookingRepository, times(1)).findById(anyLong());
-        verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.getBooking(1L, uncreatedBookingId));
     }
 
     @Test
-    @DisplayName("обновлено бронирование, когда бронирование не валидно, тогда выбрасывается исключение")
-    void updateBooking_whenBookingNotValid_thenExceptionThrown() {
-        Long userId = 0L;
+    void getBooking_whenUserIsNotOwnerOrBooker_thenContentNotFountExceptionThrown() {
+        //given
+        Booking booking = createBooking();
+        Long notOwnerUserId = 3L;
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.getBooking(notOwnerUserId, 1L));
+    }
+
+    @Test
+    void getBooking_whenAllIsOk_thenReturnBooking() {
+        //given
+        Booking booking = createBooking();
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(booking));
+        //when
+        BookingOutDto bookingOutDto = bookingService.getBooking(1L, 1L);
+        //then
+        assertThat(bookingOutDto.getId(), equalTo(booking.getId()));
+    }
+
+    @Test
+    void findAllBookingsByState_whenUserNotFound_thenContentNotFountExceptionThrown() {
+        //given
+        Long uncreatedUserId = 1L;
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.findAllBookingsByState(uncreatedUserId, State.ALL, 0, 10));
+    }
+
+    @Test
+    void findAllBookingsByState_whenAllBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllBookingsByState(1L, State.ALL, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByBookerId(anyLong(), any());
+    }
+
+    @Test
+    void findAllBookingsByState_whenCurrentBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllBookingsByState(1L, State.CURRENT, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByCurrentBooker(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllBookingsByState_whenPastBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllBookingsByState(1L, State.PAST, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByBookerIdAndEndIsBefore(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllBookingsByState_whenFutureBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllBookingsByState(1L, State.FUTURE, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByBookerIdAndStartIsAfter(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllBookingsByState_whenBookingsWithStatusRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllBookingsByState(1L, State.REJECTED, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByBookerIdAndStatus(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllOwnerBookingsByState_whenUserNotFound_thenContentNotFountExceptionThrown() {
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(
+                ContentNotFountException.class,
+                () -> bookingService.findAllOwnerBookingsByState(1L, State.ALL, 0, 10));
+    }
+
+    @Test
+    void findAllOwnerBookingsByState_whenAllBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllOwnerBookingsByState(1L, State.ALL, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByItemOwnerId(anyLong(), any());
+    }
+
+    @Test
+    void findAllOwnerBookingsByState_whenCurrentBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllOwnerBookingsByState(1L, State.CURRENT, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByOwnerCurrentBooker(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllOwnerBookingsByState_whenPastBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllOwnerBookingsByState(1L, State.PAST, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByItemOwnerIdAndEndIsBefore(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllOwnerBookingsByState_whenFutureBookingsRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllOwnerBookingsByState(1L, State.FUTURE, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByItemOwnerIdAndStartIsAfter(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllOwnerBookingsByState_whenBookingsWithStatusRequired_thenInvokeRepositoryMethod() {
+        //given
+        Booking booking = createBooking();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(booking.getBooker()));
+        //when
+        bookingService.findAllOwnerBookingsByState(1L, State.REJECTED, 0, 10);
+        //then
+        verify(bookingRepository, times(1)).findByItemOwnerIdAndStatus(anyLong(), any(), any());
+    }
+
+    @Test
+    void findAllBookingsOfItem() {
+        //given
+        Booking booking = createBooking();
+        when(bookingRepository.findByItemId(anyLong(), any())).thenReturn(List.of(booking));
+        //when
+        List<BookingOutDto> bookingOutDtoList = bookingService.findAllBookingsOfItem(1L);
+        //then
+        assertThat(booking.getId(), equalTo(bookingOutDtoList.get(0).getId()));
+    }
+
+    private Item createItem() {
+        User user = createUser();
+
+        Item item = new Item();
+        item.setRequestId(null);
+        item.setId(1L);
+        item.setName("Дрель");
+        item.setAvailable(true);
+        item.setDescription("мощная");
+        item.setOwner(user);
+        return item;
+    }
+
+    private User createUser() {
         User user = new User();
+        user.setEmail("akhraa1@yandex.ru");
         user.setId(1L);
-        Item item = new Item();
-        item.setOwner(user);
-        Long bookingId = 0L;
-        Booking oldBooking = new Booking();
-        oldBooking.setItem(item);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
-
-        final ItemOtherOwnerException exception = assertThrows(ItemOtherOwnerException.class,
-                () -> bookingService.updateBooking(bookingId, true, userId));
-
-        assertThat(String.format("Пользователь с id = 0 не является владельцем вещи: "
-                + ItemMapper.INSTANCE.toItemDto(item)), equalTo(exception.getMessage()));
-        verify(bookingRepository, times(1)).findById(anyLong());
-        verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
+        user.setName("Akhra");
+        return user;
     }
 
-    @Test
-    @DisplayName("обновлено бронирование, когда статус не валиден, " +
-            "тогда выбрасывается исключение")
-    void updateBooking_whenStatusNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Item item = new Item();
-        item.setOwner(user);
+    private Booking createBooking() {
+        User booker = createUser();
+        booker.setId(2L);
+        Item item = createItem();
 
-        Long bookingId = 0L;
-        Booking oldBooking = new Booking();
-        oldBooking.setItem(item);
-        oldBooking.setStatus(StatusBooking.REJECTED);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.updateBooking(bookingId, false, userId));
-
-        assertThat("Статус бронирования с id = 0 не был изменён пользователем с id = 0. " +
-                "Код ошибки: 30004", equalTo(exception.getMessage()));
-        verify(bookingRepository, times(1)).findById(anyLong());
-        verify(bookingRepository, never()).saveAndFlush(any(Booking.class));
+        Booking booking = new Booking();
+        booking.setId(1L);
+        booking.setStart(LocalDateTime.now().minusDays(5));
+        booking.setEnd(LocalDateTime.now().minusDays(4));
+        booking.setItem(item);
+        booking.setStatus(Status.APPROVED);
+        booking.setBooker(booker);
+        return booking;
     }
-
-    @Test
-    @DisplayName("обновлено бронирование, когда бронирование не может быть обновлено, " +
-            "тогда выбрасывается исключение")
-    void updateBooking_whenBookingNotUpdate_thenExceptionThrown() {
-        Long userId = 0L;
-        User user = new User();
-        user.setId(userId);
-        Item item = new Item();
-        item.setOwner(user);
-
-        Long bookingId = 0L;
-        Booking oldBooking = new Booking();
-        oldBooking.setItem(item);
-        oldBooking.setStatus(StatusBooking.WAITING);
-        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
-        when(bookingRepository.saveAndFlush(any(Booking.class)))
-                .thenThrow(new BookingNotUpdateException("Бронирование не было обновлено"));
-
-        final BookingNotUpdateException exception = assertThrows(BookingNotUpdateException.class,
-                () -> bookingService.updateBooking(bookingId, true, userId));
-
-        assertThat("Бронирование не было обновлено", equalTo(exception.getMessage()));
-        verify(bookingRepository, times(1)).findById(anyLong());
-        verify(bookingRepository, times(1)).saveAndFlush(any(Booking.class));
-    }
-
 }
