@@ -9,14 +9,14 @@ public interface ItemService {
 
     List<ItemDto> getAllItemsByUser(Long userId, Integer from, Integer size);
 
-    ItemDto getItemById(Long itemId, Long userId);
+    ItemDto getItemById(Long userId, Long itemId);
 
-    ItemDto saveItem(ItemDto itemDto, Long userId);
+    ItemDto saveItem(Long userId, ItemDto itemDto);
 
-    ItemDto updateItem(Long itemId, ItemDto itemDto, Long userId);
+    ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto);
 
-    List<ItemDto> findItems(String text, Long userId, Integer from, Integer size);
+    List<ItemDto> findItems(Long userId, String text, Integer from, Integer size);
 
-    CommentDto saveComment(CommentDto commentDto, Long itemId, Long userId);
+    CommentDto saveComment(Long userId, Long itemId, CommentDto commentDto);
 
 }

@@ -6,7 +6,6 @@ import ru.practicum.shareit.item.service.ItemServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 
 import lombok.SneakyThrows;
@@ -65,7 +64,7 @@ class ItemControllerIntegrationTest {
     @DisplayName("получены все вещи пользователя, когда вызваны, " +
             "то ответ статус ок и список вещей")
     void getAllItemsByUser_whenInvoked_thenResponseStatusOkWithItemsCollectionInBody() {
-        List<ItemDto> items = Arrays.asList(itemDto, itemDto2);
+        List<ItemDto> items = List.of(itemDto, itemDto2);
         when(itemService.getAllItemsByUser(anyLong(), anyInt(), anyInt())).thenReturn(items);
 
         String result = mockMvc.perform(get("/items")
@@ -82,27 +81,6 @@ class ItemControllerIntegrationTest {
 
         assertThat(objectMapper.writeValueAsString(items), equalTo(result));
         verify(itemService, times(1)).getAllItemsByUser(userId, 0, 5);
-    }
-
-    @SneakyThrows
-    @Test
-    @DisplayName("получены все вещи пользователя, когда вызваны без пользователя, " +
-            "то ответ статус бед реквест")
-    void getAllItemsByUser_whenInvoked_thenResponseStatusBadRequest() {
-        String result = mockMvc.perform(get("/items")
-                        .param("from", "0")
-                        .param("size", "5")
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat("{\"error\":\"Required request header 'X-Sharer-User-Id' for method parameter " +
-                "type Long is not present\"}", equalTo(result));
-        verify(itemService, never()).getAllItemsByUser(userId, 0, 5);
     }
 
     @SneakyThrows
@@ -124,7 +102,7 @@ class ItemControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(objectMapper.writeValueAsString(itemDto), equalTo(result));
-        verify(itemService, times(1)).getItemById(itemId, userId);
+        verify(itemService, times(1)).getItemById(userId, itemId);
     }
 
     @SneakyThrows
@@ -132,7 +110,7 @@ class ItemControllerIntegrationTest {
     @DisplayName("сохранена вещь, когда вещь валидна, " +
             "то ответ статус ок, и она сохраняется")
     void saveItem_whenItemValid_thenSavedItem() {
-        when(itemService.saveItem(any(ItemDto.class), anyLong())).thenReturn(itemDto);
+        when(itemService.saveItem(anyLong(), any(ItemDto.class))).thenReturn(itemDto);
 
         String result = mockMvc.perform(post("/items")
                         .header("X-Sharer-User-Id", userId)
@@ -146,29 +124,7 @@ class ItemControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(objectMapper.writeValueAsString(itemDto), equalTo(result));
-        verify(itemService, times(1)).saveItem(itemDto, userId);
-    }
-
-    @SneakyThrows
-    @Test
-    @DisplayName("сохранена вещь, когда вещь невалидна, то ответ статус бед реквест")
-    void saveItem_whenItemNotValid_thenSavedItem() {
-        itemDto.setName("");
-
-        String result = mockMvc.perform(post("/items")
-                        .header("X-Sharer-User-Id", userId)
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(itemDto)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat("{\"errorResponses\":[{\"error\":\"Ошибка! Краткое название вещи не может быть пустым.\"}]}",
-                equalTo(result));
-        verify(itemService, never()).saveItem(itemDto, userId);
+        verify(itemService, times(1)).saveItem(userId, itemDto);
     }
 
     @SneakyThrows
@@ -177,7 +133,7 @@ class ItemControllerIntegrationTest {
             "то ответ статус ок, и она обновляется")
     void updateItem_whenItemValid_thenUpdatedItem() {
         long itemId = 0L;
-        when(itemService.updateItem(anyLong(), any(ItemDto.class), anyLong())).thenReturn(itemDto2);
+        when(itemService.updateItem(anyLong(), anyLong(), any(ItemDto.class))).thenReturn(itemDto2);
 
         String result = mockMvc.perform(patch("/items/{itemId}", itemId)
                         .header("X-Sharer-User-Id", userId)
@@ -191,7 +147,7 @@ class ItemControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(objectMapper.writeValueAsString(itemDto2), equalTo(result));
-        verify(itemService, times(1)).updateItem(itemId, itemDto2, userId);
+        verify(itemService, times(1)).updateItem(userId, itemId, itemDto2);
     }
 
     @SneakyThrows
@@ -199,13 +155,14 @@ class ItemControllerIntegrationTest {
     @DisplayName("получены все вещи по тексту, когда вызваны, " +
             "то ответ статус ок и список вещей")
     void findItems_whenInvoked_thenResponseStatusOkWithItemsCollectionInBody() {
-        List<ItemDto> items = Arrays.asList(itemDto, itemDto2);
-        when(itemService.findItems(anyString(), anyLong(), anyInt(), anyInt())).thenReturn(items);
+        List<ItemDto> items = List.of(itemDto, itemDto2);
+        when(itemService.findItems(anyLong(), anyString(), anyInt(), anyInt())).thenReturn(items);
 
         String result = mockMvc.perform(get("/items/search")
                         .header("X-Sharer-User-Id", userId)
                         .param("text", "текст")
                         .param("from", "0")
+                        .param("size", "10")
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -215,7 +172,7 @@ class ItemControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(objectMapper.writeValueAsString(items), equalTo(result));
-        verify(itemService, times(1)).findItems("текст", userId, 0, 10);
+        verify(itemService, times(1)).findItems(userId, "текст", 0, 10);
     }
 
     @SneakyThrows
@@ -228,7 +185,7 @@ class ItemControllerIntegrationTest {
         commentDto.setId(1L);
         commentDto.setText("text 1");
 
-        when(itemService.saveComment(any(CommentDto.class), anyLong(), anyLong())).thenReturn(commentDto);
+        when(itemService.saveComment(anyLong(), anyLong(), any(CommentDto.class))).thenReturn(commentDto);
 
         String result = mockMvc.perform(post("/items/{itemId}/comment", itemId)
                         .header("X-Sharer-User-Id", userId)
@@ -242,30 +199,7 @@ class ItemControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(objectMapper.writeValueAsString(commentDto), equalTo(result));
-        verify(itemService, times(1)).saveComment(commentDto, itemId, userId);
-    }
-
-    @SneakyThrows
-    @Test
-    @DisplayName("сохранен комментарий, когда комментарий не валиден, то ответ статус бед реквест")
-    void saveComment_whenCommentNotValid_thenExceptionThrown() {
-        long itemId = 0L;
-        CommentDto commentDto = new CommentDto();
-
-        String result = mockMvc.perform(post("/items/{itemId}/comment", itemId)
-                        .header("X-Sharer-User-Id", userId)
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(commentDto)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat("{\"errorResponses\":[{\"error\":\"Ошибка! Текст комментария не может быть пустым.\"}]}",
-                equalTo(result));
-        verify(itemService, never()).saveComment(commentDto, itemId, userId);
+        verify(itemService, times(1)).saveComment(userId, itemId, commentDto);
     }
 
 }

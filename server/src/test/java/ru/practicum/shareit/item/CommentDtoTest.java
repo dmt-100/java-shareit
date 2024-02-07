@@ -2,8 +2,6 @@ package ru.practicum.shareit.item;
 
 import ru.practicum.shareit.item.dto.CommentDto;
 
-import static ru.practicum.shareit.utils.Constants.FORMATTER_FOR_DATETIME;
-
 import java.time.LocalDateTime;
 
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
@@ -13,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.json.JsonContent;
 
+import static ru.practicum.shareit.utils.Constants.FORMATTER_FOR_DATETIME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest

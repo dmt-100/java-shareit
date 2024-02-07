@@ -7,7 +7,6 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -75,7 +74,7 @@ class CommentMapperImplTest {
         comment.setId(2L);
         comment.setText("text 2");
 
-        List<CommentDto> comments = commentMapper.convertCommentListToCommentDTOList(Arrays.asList(comment));
+        List<CommentDto> comments = commentMapper.convertCommentListToCommentDTOList(List.of(comment));
 
         assertThat(1, equalTo(comments.size()));
     }

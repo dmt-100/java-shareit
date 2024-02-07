@@ -1,6 +1,5 @@
 package ru.practicum.shareit.request;
 
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.exception.ItemRequestNotFoundException;
 import ru.practicum.shareit.request.exception.ItemRequestNotSaveException;
@@ -12,7 +11,6 @@ import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,7 +64,7 @@ class ItemRequestServiceImplTest {
             "когда вызваны, то получен непустой список")
     void getAllItemRequestsByUser_whenInvoked_thenReturneItemRequestsCollectionInList() {
         Long userId = 0L;
-        List<ItemRequest> expectedItemRequests = Arrays.asList(new ItemRequest(), new ItemRequest());
+        List<ItemRequest> expectedItemRequests = List.of(new ItemRequest(), new ItemRequest());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(itemRequestRepository.findAllByRequestorId(anyLong())).thenReturn(expectedItemRequests);
 
@@ -117,7 +115,7 @@ class ItemRequestServiceImplTest {
             "когда вызваны, то получен непустой список")
     void getAllItemRequestsByOtherUsers_whenInvoked_thenReturneItemRequestsCollectionInList() {
         Long userId = 0L;
-        List<ItemRequest> expectedItemRequests = Arrays.asList(new ItemRequest(), new ItemRequest());
+        List<ItemRequest> expectedItemRequests = List.of(new ItemRequest(), new ItemRequest());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(itemRequestRepository.findAllByRequestorIdNot(anyLong(), any(Pageable.class)))
                 .thenReturn(expectedItemRequests);
@@ -130,40 +128,6 @@ class ItemRequestServiceImplTest {
         InOrder inOrder = inOrder(userRepository, itemRequestRepository);
         inOrder.verify(userRepository, times(1)).findById(anyLong());
         inOrder.verify(itemRequestRepository, times(1))
-                .findAllByRequestorIdNot(anyLong(), any(Pageable.class));
-    }
-
-    @Test
-    @DisplayName("получены все свои запросы вместе с данными об ответах на них, " +
-            "когда фром не валиден, тогда выбрасывается исключение")
-    void getAllItemRequestsByOtherUsers_whenFromNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> itemRequestService.getAllItemRequestsByOtherUsers(userId, -1, 5));
-
-        assertThat("Параметр from не может быть меньше 0. Код ошибки: 10001",
-                equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRequestRepository);
-        inOrder.verify(userRepository, never()).findById(anyLong());
-        inOrder.verify(itemRequestRepository, never())
-                .findAllByRequestorIdNot(anyLong(), any(Pageable.class));
-    }
-
-    @Test
-    @DisplayName("получены все свои запросы вместе с данными об ответах на них, " +
-            "когда сайз не валиден, тогда выбрасывается исключение")
-    void getAllItemRequestsByOtherUsers_whenSizeNotValid_thenExceptionThrown() {
-        Long userId = 0L;
-
-        final ValidationException exception = assertThrows(ValidationException.class,
-                () -> itemRequestService.getAllItemRequestsByOtherUsers(userId, 0, 0));
-
-        assertThat("Параметр size должен быть положительным. Код ошибки: 10002",
-                equalTo(exception.getMessage()));
-        InOrder inOrder = inOrder(userRepository, itemRequestRepository);
-        inOrder.verify(userRepository, never()).findById(anyLong());
-        inOrder.verify(itemRequestRepository, never())
                 .findAllByRequestorIdNot(anyLong(), any(Pageable.class));
     }
 
@@ -193,7 +157,7 @@ class ItemRequestServiceImplTest {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(itemRequestRepository.findById(userId)).thenReturn(Optional.of(expectedItemRequest));
 
-        ItemRequestDto actualItemRequest = itemRequestService.getItemRequestById(itemRequestId, userId);
+        ItemRequestDto actualItemRequest = itemRequestService.getItemRequestById(userId, itemRequestId);
 
         assertThat(ItemRequestMapper.INSTANCE.toItemRequestDto(expectedItemRequest), equalTo(actualItemRequest));
         InOrder inOrder = inOrder(userRepository, itemRequestRepository);
@@ -209,7 +173,7 @@ class ItemRequestServiceImplTest {
         when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> itemRequestService.getItemRequestById(itemRequestId, userId));
+                () -> itemRequestService.getItemRequestById(userId, itemRequestId));
 
         assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRequestRepository);
@@ -227,7 +191,7 @@ class ItemRequestServiceImplTest {
         when(itemRequestRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         final ItemRequestNotFoundException exception = assertThrows(ItemRequestNotFoundException.class,
-                () -> itemRequestService.getItemRequestById(itemRequestId, userId));
+                () -> itemRequestService.getItemRequestById(userId, itemRequestId));
 
         assertThat("Запрос с идентификатором 0 не найден.", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRequestRepository);
@@ -243,7 +207,7 @@ class ItemRequestServiceImplTest {
         when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> itemRequestService.saveItemRequest(itemRequestToSave, userId));
+                () -> itemRequestService.saveItemRequest(userId, itemRequestToSave));
 
         assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRequestRepository);
@@ -261,7 +225,7 @@ class ItemRequestServiceImplTest {
                 .thenThrow(new ItemRequestNotSaveException("Запрос не был создан"));
 
         final ItemRequestNotSaveException exception = assertThrows(ItemRequestNotSaveException.class,
-                () -> itemRequestService.saveItemRequest(itemRequestToSave, userId));
+                () -> itemRequestService.saveItemRequest(userId, itemRequestToSave));
 
         assertThat("Запрос не был создан", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRequestRepository);

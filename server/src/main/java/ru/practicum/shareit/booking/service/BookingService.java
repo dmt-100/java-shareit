@@ -14,10 +14,10 @@ public interface BookingService {
     List<BookingOutDto> getAllBookingsAllItemsByOwner(
             Long userId, StateBooking state, Integer from, Integer size);
 
-    BookingOutDto getBookingById(Long bookingId, Long userId);
+    BookingOutDto getBookingById(Long userId, Long bookingId);
 
-    BookingOutDto saveBooking(BookingInDto bookingDto, Long userId);
+    BookingOutDto saveBooking(Long userId, BookingInDto bookingDto);
 
-    BookingOutDto updateBooking(Long bookingId, Boolean approved, Long userId);
+    BookingOutDto updateBooking(Long userId, Long bookingId, Boolean approved);
 
 }

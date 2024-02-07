@@ -3,7 +3,6 @@ package ru.practicum.shareit.user;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -42,7 +41,7 @@ class UserControllerTest {
     @Test
     @DisplayName("получены все пользователи, когда вызваны, то ответ статус ок и непустое тело")
     void getAllUsers_whenInvoked_thenResponseStatusOkWithUsersCollectionInBody() {
-        List<UserDto> expectedUsers = Arrays.asList(new UserDto());
+        List<UserDto> expectedUsers = List.of(new UserDto());
         when(userService.getAllUsers()).thenReturn(expectedUsers);
 
         ResponseEntity<List<UserDto>> response = userController.getAllUsers();

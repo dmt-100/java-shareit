@@ -6,7 +6,6 @@ import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 
 import lombok.SneakyThrows;
@@ -77,7 +76,7 @@ class ItemRequestControllerIntegrationTest {
     @DisplayName("получены все запросы текущего пользователя, когда вызваны, " +
             "то ответ статус ок и список запросов")
     void getAllItemRequestsByUser_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
-        List<ItemRequestDto> itemRequests = Arrays.asList(itemRequestDto, itemRequestDto2);
+        List<ItemRequestDto> itemRequests = List.of(itemRequestDto, itemRequestDto2);
         when(itemRequestService.getAllItemRequestsByUser(anyLong()))
                 .thenReturn(itemRequests);
 
@@ -100,12 +99,14 @@ class ItemRequestControllerIntegrationTest {
     @DisplayName("получены все запросы других пользователей, когда вызваны, " +
             "то ответ статус ок и список запросов")
     void getAllItemRequestsByOtherUsers_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
-        List<ItemRequestDto> itemRequests = Arrays.asList(itemRequestDto, itemRequestDto2);
+        List<ItemRequestDto> itemRequests = List.of(itemRequestDto, itemRequestDto2);
         when(itemRequestService.getAllItemRequestsByOtherUsers(anyLong(), anyInt(), anyInt()))
                 .thenReturn(itemRequests);
 
         String result = mockMvc.perform(get("/requests/all")
                         .header("X-Sharer-User-Id", userId)
+                        .param("from", "0")
+                        .param("size", "10")
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -137,14 +138,14 @@ class ItemRequestControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(objectMapper.writeValueAsString(itemRequestDto), equalTo(result));
-        verify(itemRequestService, times(1)).getItemRequestById(itemRequestId, userId);
+        verify(itemRequestService, times(1)).getItemRequestById(userId, itemRequestId);
     }
 
     @SneakyThrows
     @Test
     @DisplayName("сохранен запрос, когда запрос валиден, то ответ статус ок, и он сохраняется")
     void saveItemRequest_whenItemRequestValid_thenSavedItemRequest() {
-        when(itemRequestService.saveItemRequest(any(ItemRequestDto.class), anyLong()))
+        when(itemRequestService.saveItemRequest(anyLong(), any(ItemRequestDto.class)))
                 .thenReturn(itemRequestDto);
 
         String result = mockMvc.perform(post("/requests")
@@ -160,7 +161,7 @@ class ItemRequestControllerIntegrationTest {
 
         assertThat(objectMapper.writeValueAsString(itemRequestDto), equalTo(result));
         verify(itemRequestService, times(1))
-                .saveItemRequest(any(ItemRequestDto.class), anyLong());
+                .saveItemRequest(anyLong(), any(ItemRequestDto.class));
     }
 
 }

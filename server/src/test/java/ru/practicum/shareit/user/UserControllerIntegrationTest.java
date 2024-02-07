@@ -7,7 +7,6 @@ import ru.practicum.shareit.user.exception.UserNotUpdateException;
 import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -63,7 +62,7 @@ class UserControllerIntegrationTest {
     @Test
     @DisplayName("получены все пользователи, когда вызваны, то ответ статус ок и список пользователей")
     void getAllUsers_whenInvoked_thenResponseStatusOkWithUsersCollectionInBody() {
-        List<UserDto> users = Arrays.asList(userDto, userDto2);
+        List<UserDto> users = List.of(userDto, userDto2);
         when(userService.getAllUsers()).thenReturn(users);
 
         String result = mockMvc.perform(get("/users")
@@ -182,28 +181,6 @@ class UserControllerIntegrationTest {
 
         assertThat("{\"error\":\"Пользователь не был создан.\"}", equalTo(result));
         verify(userService, times(1)).saveUser(userDto);
-    }
-
-    @SneakyThrows
-    @Test
-    @DisplayName("сохранен пользователь, когда пользователь валиден, " +
-            "то ответ статус бед реквест, и он не сохраняется")
-    void saveUser_whenUserNotSaves_thenReturnedBadRequest() {
-        userDto.setEmail(null);
-
-        String result = mockMvc.perform(post("/users")
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userDto)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat("{\"errorResponses\":[{\"error\":\"Ошибка! e-mail не может быть пустым.\"}]}",
-                equalTo(result));
-        verify(userService, never()).saveUser(userDto);
     }
 
     @SneakyThrows

@@ -23,7 +23,6 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,7 +80,7 @@ class BookingServiceImplTest {
     @DisplayName("получены все бронирования, когда вызваны текущие, то получен непустой список")
     void getAllBookingsByUser_whenInvokedCurrent_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(bookingRepository.findByBookerIdAndStartIsBeforeAndEndIsAfterOrderByEndDesc(
                 anyLong(), any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class)))
@@ -103,7 +102,7 @@ class BookingServiceImplTest {
     @DisplayName("получены все бронирования, когда вызваны прошедшие, то получен непустой список")
     void getAllBookingsByUser_whenInvokedPast_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(bookingRepository.findByBookerIdAndEndIsBefore(
                 anyLong(), any(LocalDateTime.class), any(Pageable.class))).thenReturn(expectedBookings);
@@ -123,7 +122,7 @@ class BookingServiceImplTest {
     @DisplayName("получены все бронирования, когда вызваны будущие, то получен непустой список")
     void getAllBookingsByUser_whenInvokedFuture_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(bookingRepository.findByBookerIdAndEndIsAfter(
                 anyLong(), any(LocalDateTime.class), any(Pageable.class))).thenReturn(expectedBookings);
@@ -144,7 +143,7 @@ class BookingServiceImplTest {
             "то получен непустой список")
     void getAllBookingsByUser_whenInvokedWaiting_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(bookingRepository.findByBookerIdAndStatusOrderByEndDesc(
                 anyLong(), any(), any(Pageable.class))).thenReturn(expectedBookings);
@@ -165,7 +164,7 @@ class BookingServiceImplTest {
             "то получен непустой список")
     void getAllBookingsByUser_whenInvokedRejected_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookings = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookings = List.of(new Booking(), new Booking());
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
         when(bookingRepository.findByBookerIdAndStatusOrderByEndDesc(
                 anyLong(), any(), any(Pageable.class))).thenReturn(expectedBookings);
@@ -204,7 +203,7 @@ class BookingServiceImplTest {
             "когда вызваны все, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedAll_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookingsList = List.of(new Booking(), new Booking());
         Page<Booking> expectedBookingsPage = new PageImpl<>(
                 expectedBookingsList, PageRequest.of(0, 1), 2);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
@@ -227,7 +226,7 @@ class BookingServiceImplTest {
             "когда вызваны текущие, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedCurrent_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookingsList = List.of(new Booking(), new Booking());
         Page<Booking> expectedBookingsPage = new PageImpl<>(
                 expectedBookingsList, PageRequest.of(0, 1), 2);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
@@ -250,7 +249,7 @@ class BookingServiceImplTest {
             "когда вызваны прошедшие, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedPast_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookingsList = List.of(new Booking(), new Booking());
         Page<Booking> expectedBookingsPage = new PageImpl<>(
                 expectedBookingsList, PageRequest.of(0, 1), 2);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
@@ -273,7 +272,7 @@ class BookingServiceImplTest {
             "когда вызваны будущие, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedFuture_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookingsList = List.of(new Booking(), new Booking());
         Page<Booking> expectedBookingsPage = new PageImpl<>(
                 expectedBookingsList, PageRequest.of(0, 1), 2);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
@@ -296,7 +295,7 @@ class BookingServiceImplTest {
             "когда вызваны ожидающий подтверждение, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedWaiting_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookingsList = List.of(new Booking(), new Booking());
         Page<Booking> expectedBookingsPage = new PageImpl<>(
                 expectedBookingsList, PageRequest.of(0, 1), 2);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
@@ -319,7 +318,7 @@ class BookingServiceImplTest {
             "когда вызваны отклоненные, то получен непустой список")
     void getAllBookingsAllItemsByOwner_whenInvokedRejected_thenReturnedBookingsCollectionInList() {
         Long userId = 0L;
-        List<Booking> expectedBookingsList = Arrays.asList(new Booking(), new Booking());
+        List<Booking> expectedBookingsList = List.of(new Booking(), new Booking());
         Page<Booking> expectedBookingsPage = new PageImpl<>(
                 expectedBookingsList, PageRequest.of(0, 1), 2);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(new User()));
@@ -400,10 +399,10 @@ class BookingServiceImplTest {
         Booking expectedBooking = new Booking();
         expectedBooking.setItem(item);
         expectedBooking.setBooker(user);
-        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(expectedBooking));
+        when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(expectedBooking));
 
         final BookingOtherBookerException exception = assertThrows(BookingOtherBookerException.class,
-                () -> bookingService.getBookingById(bookingId, 1L));
+                () -> bookingService.getBookingById(1L, bookingId));
 
         assertThat("Пользователь с id = 1 не осуществлял бронирование с id = 0",
                 equalTo(exception.getMessage()));
@@ -432,7 +431,7 @@ class BookingServiceImplTest {
         when(bookingRepository.save(any(Booking.class)))
                 .thenReturn(BookingMapper.INSTANCE.toBooking(bookingToSave, user, item));
 
-        BookingOutDto actualBooking = bookingService.saveBooking(bookingToSave, userId);
+        BookingOutDto actualBooking = bookingService.saveBooking(userId, bookingToSave);
 
         assertThat(bookingToSave.getId(), equalTo(actualBooking.getId()));
         assertThat(bookingToSave.getStart(), equalTo(actualBooking.getStart()));
@@ -459,7 +458,7 @@ class BookingServiceImplTest {
         bookingToSave.setEnd(LocalDateTime.now().minusMinutes(1));
 
         final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Ошибка! Дата и время начала бронирования должны быть раньше даты и времени " +
                 "конца бронирования. Код ошибки: 30001", equalTo(exception.getMessage()));
@@ -482,7 +481,7 @@ class BookingServiceImplTest {
         bookingToSave.setEnd(dateTimeBooking);
 
         final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Ошибка! Дата и время начала бронирования не могут совпадать с датой и временем " +
                 "конца бронирования. Код ошибки: 30002", equalTo(exception.getMessage()));
@@ -506,7 +505,7 @@ class BookingServiceImplTest {
         when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Пользователь с id = 0 не найден.", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
@@ -532,7 +531,7 @@ class BookingServiceImplTest {
         when(itemRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         final ItemNotFoundException exception = assertThrows(ItemNotFoundException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Вещь с идентификатором 0 не найдена.", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
@@ -561,7 +560,7 @@ class BookingServiceImplTest {
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
 
         final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Ошибка! Вещь: " + ItemMapper.INSTANCE.toItemDto(item) +
                 " недоступна для бронирования. Код ошибки: 30003", equalTo(exception.getMessage()));
@@ -593,7 +592,7 @@ class BookingServiceImplTest {
         when(itemRepository.findById(anyLong())).thenReturn(Optional.of(item));
 
         final UserNotFoundException exception = assertThrows(UserNotFoundException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Пользователь с id = 0 владелец вещи с id = 0", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
@@ -625,7 +624,7 @@ class BookingServiceImplTest {
                 .thenThrow(new BookingNotSaveException("Бронирование не было создано"));
 
         final BookingNotSaveException exception = assertThrows(BookingNotSaveException.class,
-                () -> bookingService.saveBooking(bookingToSave, userId));
+                () -> bookingService.saveBooking(userId, bookingToSave));
 
         assertThat("Бронирование не было создано", equalTo(exception.getMessage()));
         InOrder inOrder = inOrder(userRepository, itemRepository, bookingRepository);
@@ -653,7 +652,7 @@ class BookingServiceImplTest {
         newBooking.setStatus(StatusBooking.APPROVED);
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenReturn(newBooking);
 
-        BookingOutDto actualBooking = bookingService.updateBooking(bookingId, true, userId);
+        BookingOutDto actualBooking = bookingService.updateBooking(userId, bookingId, true);
 
         assertThat(newBooking.getId(), equalTo(actualBooking.getId()));
         assertThat(newBooking.getStart(), equalTo(actualBooking.getStart()));
@@ -685,7 +684,7 @@ class BookingServiceImplTest {
         newBooking.setStatus(StatusBooking.REJECTED);
         when(bookingRepository.saveAndFlush(any(Booking.class))).thenReturn(newBooking);
 
-        BookingOutDto actualBooking = bookingService.updateBooking(bookingId, false, userId);
+        BookingOutDto actualBooking = bookingService.updateBooking(userId, bookingId, false);
 
         assertThat(newBooking.getId(), equalTo(actualBooking.getId()));
         assertThat(newBooking.getStart(), equalTo(actualBooking.getStart()));
@@ -712,7 +711,7 @@ class BookingServiceImplTest {
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         final BookingNotFoundException exception = assertThrows(BookingNotFoundException.class,
-                () -> bookingService.updateBooking(bookingId, true, userId));
+                () -> bookingService.updateBooking(userId, bookingId, true));
 
         assertThat("Бронирование с id = 0 не найдено.", equalTo(exception.getMessage()));
         verify(bookingRepository, times(1)).findById(anyLong());
@@ -733,7 +732,7 @@ class BookingServiceImplTest {
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
 
         final ItemOtherOwnerException exception = assertThrows(ItemOtherOwnerException.class,
-                () -> bookingService.updateBooking(bookingId, true, userId));
+                () -> bookingService.updateBooking(userId, bookingId, true));
 
         assertThat(String.format("Пользователь с id = 0 не является владельцем вещи: "
                 + ItemMapper.INSTANCE.toItemDto(item)), equalTo(exception.getMessage()));
@@ -758,7 +757,7 @@ class BookingServiceImplTest {
         when(bookingRepository.findById(anyLong())).thenReturn(Optional.of(oldBooking));
 
         final ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookingService.updateBooking(bookingId, false, userId));
+                () -> bookingService.updateBooking(userId, bookingId, false));
 
         assertThat("Статус бронирования с id = 0 не был изменён пользователем с id = 0. " +
                 "Код ошибки: 30004", equalTo(exception.getMessage()));
@@ -785,7 +784,7 @@ class BookingServiceImplTest {
                 .thenThrow(new BookingNotUpdateException("Бронирование не было обновлено"));
 
         final BookingNotUpdateException exception = assertThrows(BookingNotUpdateException.class,
-                () -> bookingService.updateBooking(bookingId, true, userId));
+                () -> bookingService.updateBooking(userId, bookingId, true));
 
         assertThat("Бронирование не было обновлено", equalTo(exception.getMessage()));
         verify(bookingRepository, times(1)).findById(anyLong());

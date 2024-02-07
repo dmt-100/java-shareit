@@ -9,7 +9,6 @@ import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
-import ru.practicum.shareit.utils.ValidPage;
 
 import java.util.List;
 
@@ -38,7 +37,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestDto> getAllItemRequestsByOtherUsers(Long userId, Integer from, Integer size) {
-        PageRequest page = ValidPage.validate(from, size);
+        PageRequest page = PageRequest.of(from / size, size);
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 
@@ -47,7 +46,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public ItemRequestDto getItemRequestById(Long requestId, Long userId) {
+    public ItemRequestDto getItemRequestById(Long userId, Long requestId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
         ItemRequest itemRequest = itemRequestRepository.findById(requestId).orElseThrow(() ->
@@ -58,7 +57,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Transactional
     @Override
-    public ItemRequestDto saveItemRequest(ItemRequestDto itemRequestDto, Long userId) {
+    public ItemRequestDto saveItemRequest(Long userId, ItemRequestDto itemRequestDto) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 

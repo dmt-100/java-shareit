@@ -6,11 +6,9 @@ import ru.practicum.shareit.booking.model.StateBooking;
 import ru.practicum.shareit.booking.service.BookingService;
 
 import java.util.List;
-import javax.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,9 +24,8 @@ public class BookingController {
      */
     public ResponseEntity<List<BookingOutDto>> getAllBookingsByUser(
             @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestParam(defaultValue = "ALL") StateBooking state,
-            @RequestParam(defaultValue = "0") Integer from,
-            @RequestParam(defaultValue = "10") Integer size) {
+            @RequestParam StateBooking state,
+            @RequestParam Integer from, @RequestParam Integer size) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsByUser(userId, state, from, size);
         return ResponseEntity.ok().body(bookingOutDtos);
     }
@@ -39,9 +36,8 @@ public class BookingController {
      */
     public ResponseEntity<List<BookingOutDto>> getAllBookingsAllItemsByOwner(
             @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestParam(defaultValue = "ALL") StateBooking state,
-            @RequestParam(defaultValue = "0") Integer from,
-            @RequestParam(defaultValue = "10") Integer size) {
+            @RequestParam StateBooking state,
+            @RequestParam Integer from, @RequestParam Integer size) {
         List<BookingOutDto> bookingOutDtos = bookingService.getAllBookingsAllItemsByOwner(userId, state, from, size);
         return ResponseEntity.ok().body(bookingOutDtos);
     }
@@ -51,21 +47,20 @@ public class BookingController {
      * Получение данных о конкретном бронировании
      */
     public ResponseEntity<BookingOutDto> getBookingById(
-            @PathVariable Long bookingId,
-            @RequestHeader("X-Sharer-User-Id") Long userId) {
-        BookingOutDto bookingOutDto = bookingService.getBookingById(bookingId, userId);
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @PathVariable Long bookingId) {
+        BookingOutDto bookingOutDto = bookingService.getBookingById(userId, bookingId);
         return ResponseEntity.ok(bookingOutDto);
     }
 
     @PostMapping
-    @Validated
     /**
      * Добавление нового запроса на бронирование
      */
     public ResponseEntity<BookingOutDto> saveBooking(
-            @Valid @RequestBody BookingInDto bookingInDto,
-            @RequestHeader("X-Sharer-User-Id") Long userId) {
-        BookingOutDto bookingOutDto = bookingService.saveBooking(bookingInDto, userId);
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @RequestBody BookingInDto bookingInDto) {
+        BookingOutDto bookingOutDto = bookingService.saveBooking(userId, bookingInDto);
         return ResponseEntity.ok(bookingOutDto);
     }
 
@@ -74,9 +69,9 @@ public class BookingController {
      * Подтверждение или отклонение запроса на бронирование
      */
     public ResponseEntity<BookingOutDto> updateBooking(
-            @PathVariable Long bookingId, @RequestParam Boolean approved,
-            @RequestHeader("X-Sharer-User-Id") Long userId) {
-        BookingOutDto bookingOutDto = bookingService.updateBooking(bookingId, approved, userId);
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @PathVariable Long bookingId, @RequestParam Boolean approved) {
+        BookingOutDto bookingOutDto = bookingService.updateBooking(userId, bookingId, approved);
         return ResponseEntity.ok(bookingOutDto);
     }
 

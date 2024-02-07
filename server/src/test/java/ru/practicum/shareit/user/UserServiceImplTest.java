@@ -9,7 +9,6 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserServiceImpl;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,7 +45,7 @@ class UserServiceImplTest {
     @Test
     @DisplayName("получены все пользователи, когда вызваны, то получен непустой список")
     void getAllUsers_whenInvoked_thenReturnedUsersCollectionInList() {
-        List<User> expectedUsers = Arrays.asList(new User(), new User());
+        List<User> expectedUsers = List.of(new User(), new User());
         when(userRepository.findAll()).thenReturn(expectedUsers);
 
         List<UserDto> actualUsers = userService.getAllUsers();

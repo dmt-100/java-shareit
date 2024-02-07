@@ -16,7 +16,6 @@ import ru.practicum.shareit.user.model.User;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 import lombok.SneakyThrows;
@@ -108,7 +107,7 @@ class BookingControllerIntegrationTest {
     @DisplayName("получены все бронирования текущего пользователя, когда вызваны, " +
             "то ответ статус ок и список бронирований")
     void getAllBookingsByUser_whenInvoked_thenResponseStatusOkWithBookingsCollectionInBody() {
-        List<BookingOutDto> bookings = Arrays.asList(bookingOutDto, bookingOutDto2);
+        List<BookingOutDto> bookings = List.of(bookingOutDto, bookingOutDto2);
         when(bookingService.getAllBookingsByUser(anyLong(), any(), anyInt(), anyInt()))
                 .thenReturn(bookings);
 
@@ -132,32 +131,10 @@ class BookingControllerIntegrationTest {
 
     @SneakyThrows
     @Test
-    @DisplayName("получены все бронирования текущего пользователя, когда вызваны с невалидным состоянием, " +
-            "то ответ статус бед реквест")
-    void getAllBookingsByUser_whenStateNotValid_thenResponseStatusBadRequest() {
-        String result = mockMvc.perform(get("/bookings")
-                        .header("X-Sharer-User-Id", userId)
-                        .param("state", "not valid")
-                        .param("from", "0")
-                        .param("size", "5")
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat("{\"error\":\"Unknown state: not valid\"}", equalTo(result));
-        verify(bookingService, never()).getAllBookingsByUser(anyLong(), any(), anyInt(), anyInt());
-    }
-
-    @SneakyThrows
-    @Test
     @DisplayName("получены все бронирования всех вещей владельца, когда вызваны, " +
             "то ответ статус ок и список бронирований")
     void getAllBookingsAllItemsByOwner_whenInvoked_thenResponseStatusOkWithBookingsCollectionInBody() {
-        List<BookingOutDto> bookings = Arrays.asList(bookingOutDto, bookingOutDto2);
+        List<BookingOutDto> bookings = List.of(bookingOutDto, bookingOutDto2);
         when(bookingService.getAllBookingsAllItemsByOwner(anyLong(), any(), anyInt(), anyInt()))
                 .thenReturn(bookings);
 
@@ -206,7 +183,7 @@ class BookingControllerIntegrationTest {
     @DisplayName("сохранено бронирование, когда бронирование валидно, " +
             "то ответ статус ок, и оно сохраняется")
     void saveBooking_whenBookingValid_thenSavedBooking() {
-        when(bookingService.saveBooking(any(BookingInDto.class), anyLong())).thenReturn(bookingOutDto);
+        when(bookingService.saveBooking(anyLong(), any(BookingInDto.class))).thenReturn(bookingOutDto);
 
         String result = mockMvc.perform(post("/bookings")
                         .header("X-Sharer-User-Id", userId)
@@ -221,30 +198,7 @@ class BookingControllerIntegrationTest {
 
         assertThat(objectMapper.writeValueAsString(bookingOutDto), equalTo(result));
         verify(bookingService, times(1))
-                .saveBooking(any(BookingInDto.class), anyLong());
-    }
-
-    @SneakyThrows
-    @Test
-    @DisplayName("сохранено бронирование, когда бронирование не валидно, " +
-            "то ответ статус бед реквест")
-    void saveBooking_whenBookingNotValid__thenResponseStatusBadRequest() {
-        bookingInDto.setStart(LocalDateTime.now().minusMinutes(10));
-
-        String result = mockMvc.perform(post("/bookings")
-                        .header("X-Sharer-User-Id", userId)
-                        .characterEncoding(StandardCharsets.UTF_8)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(bookingInDto)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andReturn()
-                .getResponse()
-                .getContentAsString(StandardCharsets.UTF_8);
-
-        assertThat("{\"errorResponses\":[{\"error\":\"Дата и время начала бронирования " +
-                "не могут быть в прошлом.\"}]}", equalTo(result));
-        verify(bookingService, never()).saveBooking(any(BookingInDto.class), anyLong());
+                .saveBooking(anyLong(), any(BookingInDto.class));
     }
 
     @SneakyThrows
@@ -253,7 +207,7 @@ class BookingControllerIntegrationTest {
             "то ответ статус ок, и оно обновляется")
     void updateBooking_whenBookingValid_thenUpdatedBooking() {
         long bookingId = 0L;
-        when(bookingService.updateBooking(anyLong(), anyBoolean(), anyLong())).thenReturn(bookingOutDto2);
+        when(bookingService.updateBooking(anyLong(), anyLong(), anyBoolean())).thenReturn(bookingOutDto2);
 
         String result = mockMvc.perform(patch("/bookings/{bookingId}", bookingId)
                         .header("X-Sharer-User-Id", userId)
@@ -269,7 +223,7 @@ class BookingControllerIntegrationTest {
 
         assertThat(objectMapper.writeValueAsString(bookingOutDto2), equalTo(result));
         verify(bookingService, times(1))
-                .updateBooking(bookingId, true, userId);
+                .updateBooking(userId, bookingId, true);
     }
 
     @SneakyThrows
@@ -291,7 +245,7 @@ class BookingControllerIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertThat("{\"error\":\"Произошла непредвиденная ошибка.\"}", equalTo(result));
-        verify(bookingService, never()).updateBooking(bookingId, true, userId);
+        verify(bookingService, never()).updateBooking(userId, bookingId, true);
     }
 
 }

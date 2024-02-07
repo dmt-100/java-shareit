@@ -4,7 +4,6 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +45,7 @@ class ItemControllerTest {
     @DisplayName("получены все вещи пользователя, когда вызваны, то ответ статус ок и непустое тело")
     void getAllItemsByUser_whenInvoked_thenResponseStatusOkWithItemsCollectionInBody() {
         Long userId = 0L;
-        List<ItemDto> expectedItems = Arrays.asList(new ItemDto());
+        List<ItemDto> expectedItems = List.of(new ItemDto());
         when(itemService.getAllItemsByUser(userId, 0, 0)).thenReturn(expectedItems);
 
         ResponseEntity<List<ItemDto>> response = itemController.getAllItemsByUser(userId, 0, 0);
@@ -64,11 +63,11 @@ class ItemControllerTest {
         ItemDto expectedItem = new ItemDto();
         when(itemService.getItemById(itemId, userId)).thenReturn(expectedItem);
 
-        ResponseEntity<ItemDto> response = itemController.getItemById(itemId, userId);
+        ResponseEntity<ItemDto> response = itemController.getItemById(userId, itemId);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedItem, equalTo(response.getBody()));
-        verify(itemService, times(1)).getItemById(itemId, userId);
+        verify(itemService, times(1)).getItemById(userId, itemId);
     }
 
     @Test
@@ -76,13 +75,13 @@ class ItemControllerTest {
     void saveItem_whenItemValid_thenSavedItem() {
         ItemDto expectedItem = new ItemDto();
         long userId = 0L;
-        when(itemService.saveItem(expectedItem, userId)).thenReturn(expectedItem);
+        when(itemService.saveItem(userId, expectedItem)).thenReturn(expectedItem);
 
-        ResponseEntity<ItemDto> response = itemController.saveItem(expectedItem, userId);
+        ResponseEntity<ItemDto> response = itemController.saveItem(userId, expectedItem);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedItem, equalTo(response.getBody()));
-        verify(itemService, times(1)).saveItem(expectedItem, userId);
+        verify(itemService, times(1)).saveItem(userId, expectedItem);
     }
 
     @Test
@@ -94,13 +93,13 @@ class ItemControllerTest {
         newItem.setName("2");
         newItem.setDescription("2");
         newItem.setAvailable(true);
-        when(itemService.updateItem(itemId, newItem, userId)).thenReturn(newItem);
+        when(itemService.updateItem(userId, itemId, newItem)).thenReturn(newItem);
 
-        ResponseEntity<ItemDto> response = itemController.updateItem(itemId, newItem, userId);
+        ResponseEntity<ItemDto> response = itemController.updateItem(userId, itemId, newItem);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(newItem, equalTo(response.getBody()));
-        verify(itemService, times(1)).updateItem(itemId, newItem, userId);
+        verify(itemService, times(1)).updateItem(userId, itemId, newItem);
     }
 
     @Test
@@ -108,11 +107,11 @@ class ItemControllerTest {
             "то ответ статус ок и пустое тело")
     void findItems_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
         Long userId = 0L;
-        ResponseEntity<List<ItemDto>> response = itemController.findItems("", userId, 0, 0);
+        ResponseEntity<List<ItemDto>> response = itemController.findItems(userId, "", 0, 0);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(response.getBody(), empty());
-        verify(itemService, times(1)).findItems("", userId, 0, 0);
+        verify(itemService, times(1)).findItems(userId, "", 0, 0);
     }
 
     @Test
@@ -120,14 +119,14 @@ class ItemControllerTest {
             "то ответ статус ок и непустое тело")
     void findItems_whenInvoked_thenResponseStatusOkWithItemsCollectionInBody() {
         Long userId = 0L;
-        List<ItemDto> expectedItems = Arrays.asList(new ItemDto());
-        Mockito.when(itemService.findItems("", userId, 0, 0)).thenReturn(expectedItems);
+        List<ItemDto> expectedItems = List.of(new ItemDto());
+        Mockito.when(itemService.findItems(userId, "", 0, 0)).thenReturn(expectedItems);
 
-        ResponseEntity<List<ItemDto>> response = itemController.findItems("", userId, 0, 0);
+        ResponseEntity<List<ItemDto>> response = itemController.findItems(userId, "", 0, 0);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedItems, equalTo(response.getBody()));
-        verify(itemService, times(1)).findItems("", userId, 0, 0);
+        verify(itemService, times(1)).findItems(userId, "", 0, 0);
     }
 
     @Test
@@ -136,13 +135,13 @@ class ItemControllerTest {
         CommentDto expectedComment = new CommentDto();
         long itemId = 0L;
         long userId = 0L;
-        when(itemService.saveComment(expectedComment, itemId, userId)).thenReturn(expectedComment);
+        when(itemService.saveComment(userId, itemId, expectedComment)).thenReturn(expectedComment);
 
-        ResponseEntity<CommentDto> response = itemController.saveComment(expectedComment, itemId, userId);
+        ResponseEntity<CommentDto> response = itemController.saveComment(userId, itemId, expectedComment);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedComment, equalTo(response.getBody()));
-        verify(itemService, times(1)).saveComment(expectedComment, itemId, userId);
+        verify(itemService, times(1)).saveComment(userId, itemId, expectedComment);
     }
 
 }

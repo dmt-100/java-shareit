@@ -4,10 +4,8 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
-import javax.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
@@ -37,11 +35,10 @@ public class UserController {
     }
 
     @PostMapping
-    @Validated
     /**
      * Создание пользователя
      */
-    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<UserDto> saveUser(@RequestBody UserDto userDto) {
         userDto = userService.saveUser(userDto);
         return ResponseEntity.ok(userDto);
     }

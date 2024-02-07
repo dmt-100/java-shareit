@@ -19,7 +19,6 @@ import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
-import ru.practicum.shareit.utils.ValidPage;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,7 +46,7 @@ public class BookingServiceImpl implements BookingService {
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 
-        PageRequest page = ValidPage.validate(from, size);
+        PageRequest page = PageRequest.of(from / size, size);
         PageRequest pageRequest = PageRequest.of(from, size, Sort.by(Sort.Direction.DESC, "start"));
         List<Booking> bookings = new ArrayList<>();
 
@@ -92,7 +91,6 @@ public class BookingServiceImpl implements BookingService {
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 
-        ValidPage.validate(from, size);
         PageRequest page = PageRequest.of(from, size, Sort.by(Sort.Direction.DESC, "start"));
         List<Booking> bookings = new ArrayList<>();
         BooleanExpression byOwnerId = QItem.item.owner.id.eq(userId);
@@ -139,7 +137,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingOutDto getBookingById(Long bookingId, Long userId) {
+    public BookingOutDto getBookingById(Long userId, Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new BookingNotFoundException("Бронирование с идентификатором " + bookingId + " не найдено."));
 
@@ -154,7 +152,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Transactional
     @Override
-    public BookingOutDto saveBooking(BookingInDto bookingInDto, Long userId) {
+    public BookingOutDto saveBooking(Long userId, BookingInDto bookingInDto) {
         BookingInDto bookingInDtoNew = validateBookingDto(bookingInDto);
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
@@ -181,7 +179,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Transactional
     @Override
-    public BookingOutDto updateBooking(Long bookingId, Boolean approved, Long userId) {
+    public BookingOutDto updateBooking(Long userId, Long bookingId, Boolean approved) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new BookingNotFoundException("Бронирование с id = " + bookingId + " не найдено."));
         Item item = booking.getItem();

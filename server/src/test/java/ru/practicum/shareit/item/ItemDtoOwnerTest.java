@@ -4,7 +4,7 @@ import ru.practicum.shareit.booking.dto.BookingDtoOwner;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDtoOwner;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +44,7 @@ class ItemDtoOwnerTest {
         itemDto.setRequestId(2L);
         itemDto.setLastBooking(lastBooking);
         itemDto.setNextBooking(nextBooking);
-        itemDto.setComments(Arrays.asList(commentDto1, commentDto2));
+        itemDto.setComments(List.of(commentDto1, commentDto2));
 
         JsonContent<ItemDtoOwner> result = json.write(itemDto);
 

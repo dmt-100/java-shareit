@@ -6,7 +6,6 @@ import ru.practicum.shareit.booking.model.StateBooking;
 import ru.practicum.shareit.booking.model.StatusBooking;
 import ru.practicum.shareit.booking.service.BookingServiceImpl;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +48,7 @@ class BookingControllerTest {
     @DisplayName("получены все бронирования пользователя, когда вызваны, то ответ статус ок и непустое тело")
     void getAllBookingsByUser_whenInvoked_thenResponseStatusOkWithBookingsCollectionInBody() {
         Long userId = 0L;
-        List<BookingOutDto> expectedBookings = Arrays.asList(new BookingOutDto());
+        List<BookingOutDto> expectedBookings = List.of(new BookingOutDto());
         when(bookingService.getAllBookingsByUser(userId, StateBooking.ALL, 0, 0)).thenReturn(expectedBookings);
 
         ResponseEntity<List<BookingOutDto>> response = bookingController
@@ -80,7 +79,7 @@ class BookingControllerTest {
             "когда вызваны, то ответ статус ок и непустое тело")
     void getAllBookingsAllItemsByOwner_whenInvoked_thenResponseStatusOkWithBookingsCollectionInBody() {
         Long userId = 0L;
-        List<BookingOutDto> expectedBookings = Arrays.asList(new BookingOutDto());
+        List<BookingOutDto> expectedBookings = List.of(new BookingOutDto());
         when(bookingService.getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 0))
                 .thenReturn(expectedBookings);
 
@@ -99,13 +98,13 @@ class BookingControllerTest {
         long bookingId = 0L;
         long userId = 0L;
         BookingOutDto expectedBooking = new BookingOutDto();
-        when(bookingService.getBookingById(bookingId, userId)).thenReturn(expectedBooking);
+        when(bookingService.getBookingById(userId, bookingId)).thenReturn(expectedBooking);
 
-        ResponseEntity<BookingOutDto> response = bookingController.getBookingById(bookingId, userId);
+        ResponseEntity<BookingOutDto> response = bookingController.getBookingById(userId, bookingId);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedBooking, equalTo(response.getBody()));
-        verify(bookingService, times(1)).getBookingById(bookingId, userId);
+        verify(bookingService, times(1)).getBookingById(userId, bookingId);
     }
 
     @Test
@@ -115,14 +114,14 @@ class BookingControllerTest {
         BookingInDto bookingIn = new BookingInDto();
         BookingOutDto expectedBooking = new BookingOutDto();
         long userId = 0L;
-        when(bookingService.saveBooking(bookingIn, userId)).thenReturn(expectedBooking);
+        when(bookingService.saveBooking(userId, bookingIn)).thenReturn(expectedBooking);
 
         ResponseEntity<BookingOutDto> response = bookingController
-                .saveBooking(bookingIn, userId);
+                .saveBooking(userId, bookingIn);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedBooking, equalTo(response.getBody()));
-        verify(bookingService, times(1)).saveBooking(bookingIn, userId);
+        verify(bookingService, times(1)).saveBooking(userId, bookingIn);
     }
 
     @Test
@@ -132,15 +131,15 @@ class BookingControllerTest {
         Long userId = 0L;
         BookingOutDto newBooking = new BookingOutDto();
         newBooking.setStatus(StatusBooking.APPROVED);
-        when(bookingService.updateBooking(bookingId, null, userId)).thenReturn(newBooking);
+        when(bookingService.updateBooking(userId, bookingId, null)).thenReturn(newBooking);
 
         ResponseEntity<BookingOutDto> response = bookingController
-                .updateBooking(bookingId, null, userId);
+                .updateBooking(userId, bookingId, null);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(newBooking, equalTo(response.getBody()));
         verify(bookingService, times(1))
-                .updateBooking(bookingId, null, userId);
+                .updateBooking(userId, bookingId, null);
     }
 
 }

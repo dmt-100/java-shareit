@@ -3,7 +3,6 @@ package ru.practicum.shareit.request;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +46,7 @@ class ItemRequestControllerTest {
             "когда вызваны, то ответ статус ок и непустое тело")
     void getAllItemRequestsByUser_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
         Long userId = 0L;
-        List<ItemRequestDto> expectedItemRequests = Arrays.asList(new ItemRequestDto());
+        List<ItemRequestDto> expectedItemRequests = List.of(new ItemRequestDto());
         when(itemRequestService.getAllItemRequestsByUser(userId)).thenReturn(expectedItemRequests);
 
         ResponseEntity<List<ItemRequestDto>> response = itemRequestController
@@ -78,7 +77,7 @@ class ItemRequestControllerTest {
             "когда вызваны, то ответ статус ок и непустое тело")
     void getAllItemRequestsByOtherUsers_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
         Long userId = 0L;
-        List<ItemRequestDto> expectedItemRequests = Arrays.asList(new ItemRequestDto());
+        List<ItemRequestDto> expectedItemRequests = List.of(new ItemRequestDto());
         when(itemRequestService.getAllItemRequestsByOtherUsers(userId, 0, 0))
                 .thenReturn(expectedItemRequests);
 
@@ -97,7 +96,7 @@ class ItemRequestControllerTest {
         long requestId = 0L;
         long userId = 0L;
         ItemRequestDto expectedItemRequest = new ItemRequestDto();
-        when(itemRequestService.getItemRequestById(requestId, userId)).thenReturn(expectedItemRequest);
+        when(itemRequestService.getItemRequestById(userId, requestId)).thenReturn(expectedItemRequest);
 
         ResponseEntity<ItemRequestDto> response = itemRequestController
                 .getItemRequestById(requestId, userId);
@@ -105,7 +104,7 @@ class ItemRequestControllerTest {
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedItemRequest, equalTo(response.getBody()));
         verify(itemRequestService, times(1))
-                .getItemRequestById(requestId, userId);
+                .getItemRequestById(userId, requestId);
     }
 
     @Test
@@ -113,16 +112,16 @@ class ItemRequestControllerTest {
     void saveItemRequest_whenItemRequestValid_thenSavedItemRequest() {
         ItemRequestDto expectedItemRequest = new ItemRequestDto();
         long userId = 0L;
-        when(itemRequestService.saveItemRequest(expectedItemRequest, userId))
+        when(itemRequestService.saveItemRequest(userId, expectedItemRequest))
                 .thenReturn(expectedItemRequest);
 
         ResponseEntity<ItemRequestDto> response = itemRequestController
-                .saveItemRequest(expectedItemRequest, userId);
+                .saveItemRequest(userId, expectedItemRequest);
 
         assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
         assertThat(expectedItemRequest, equalTo(response.getBody()));
         verify(itemRequestService, times(1))
-                .saveItemRequest(expectedItemRequest, userId);
+                .saveItemRequest(userId, expectedItemRequest);
     }
 
 }

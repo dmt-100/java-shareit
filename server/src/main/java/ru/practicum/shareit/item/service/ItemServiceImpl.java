@@ -18,7 +18,6 @@ import ru.practicum.shareit.user.exception.UserNotFoundException;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.utils.ValidPage;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -46,22 +45,21 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getAllItemsByUser(Long userId, Integer from, Integer size) {
-        ValidPage.validate(from, size);
         PageRequest page = PageRequest.of(from, size, Sort.by(Sort.Direction.ASC, "id"));
 
         return itemRepository.findAllByOwnerId(userId, page)
                 .stream()
-                .map(item -> getItemById(item.getId(), userId))
+                .map(item -> getItemById(userId, item.getId()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public ItemDto getItemById(Long itemId, Long userId) {
+    public ItemDto getItemById(Long userId, Long itemId) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
                 new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
 
-        Booking lastBooking = setLastBooking(item, userId);
-        Booking nextBooking = setNextBooking(item, userId);
+        Booking lastBooking = setLastBooking(userId, item);
+        Booking nextBooking = setNextBooking(userId, item);
 
         List<Comment> comments = commentRepository.findAllByItemId(itemId);
         return ItemMapper.INSTANCE.toItemDtoOwner(item, lastBooking, nextBooking, comments);
@@ -69,7 +67,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Transactional
     @Override
-    public ItemDto saveItem(ItemDto itemDto, Long userId) {
+    public ItemDto saveItem(Long userId, ItemDto itemDto) {
         itemDto = validateItemDto(itemDto);
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
@@ -95,7 +93,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Transactional
     @Override
-    public ItemDto updateItem(Long itemId, ItemDto itemDto, Long userId) {
+    public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
                 new ItemNotFoundException("Вещь с id = " + itemId + " не найдена."));
         if (!item.getOwner().getId().equals(userId)) {
@@ -123,11 +121,11 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemDto> findItems(String text, Long userId, Integer from, Integer size) {
+    public List<ItemDto> findItems(Long userId, String text, Integer from, Integer size) {
         if (text.isEmpty()) {
             return Collections.EMPTY_LIST;
         }
-        PageRequest page = ValidPage.validate(from, size);
+        PageRequest page = PageRequest.of(from / size, size);
 
         return ItemMapper.INSTANCE.convertItemListToItemDTOList(
                 itemRepository.search(text, page));
@@ -135,7 +133,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Transactional
     @Override
-    public CommentDto saveComment(CommentDto commentDto, Long itemId, Long userId) {
+    public CommentDto saveComment(Long userId, Long itemId, CommentDto commentDto) {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
                 new ItemNotFoundException("Вещь с идентификатором " + itemId + " не найдена."));
         User user = userRepository.findById(userId).orElseThrow(() ->
@@ -163,7 +161,7 @@ public class ItemServiceImpl implements ItemService {
         return itemDto;
     }
 
-    private Booking setLastBooking(Item item, Long userId) {
+    private Booking setLastBooking(Long userId, Item item) {
         Booking lastBooking;
         if (item.getOwner().getId().equals(userId)) {
             lastBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsBefore(
@@ -175,7 +173,7 @@ public class ItemServiceImpl implements ItemService {
         return lastBooking;
     }
 
-    private Booking setNextBooking(Item item, Long userId) {
+    private Booking setNextBooking(Long userId, Item item) {
         Booking nextBooking;
         if (item.getOwner().getId().equals(userId)) {
             nextBooking = bookingRepository.findFirstByItemIdAndStatusAndStartIsAfter(

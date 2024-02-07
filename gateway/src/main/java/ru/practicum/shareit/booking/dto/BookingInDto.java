@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking.dto;
 
+import lombok.Setter;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
@@ -9,6 +10,7 @@ import javax.validation.constraints.NotNull;
 import lombok.Getter;
 
 @Getter
+@Setter
 public class BookingInDto {
 
     private Long id;

@@ -44,7 +44,7 @@ class ItemServiceImplIntegrationTest {
         itemDto = makeItemDto("item2", "item 2", false);
         em.persist(ItemMapper.INSTANCE.toItem(itemDto, user));
 
-        ItemDto expectedItemDto = itemService.getItemById(2L, user.getId());
+        ItemDto expectedItemDto = itemService.getItemById(user.getId(), 2L);
         TypedQuery<Item> query = em.createQuery("Select i from Item i where i.id = :id", Item.class);
         Item item = query
                 .setParameter("id", 2L)
