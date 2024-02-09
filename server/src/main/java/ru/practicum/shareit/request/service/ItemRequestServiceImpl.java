@@ -37,7 +37,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestDto> getAllItemRequestsByOtherUsers(Long userId, Integer from, Integer size) {
-        PageRequest page = PageRequest.of(from / size, size);
+        PageRequest page = PageRequest.of(from, size);
         userRepository.findById(userId).orElseThrow(() ->
                 new UserNotFoundException("Пользователь с id = " + userId + " не найден."));
 
