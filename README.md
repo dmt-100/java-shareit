@@ -15,9 +15,9 @@
 7. Пользователи могут оставлять отзывы на вещь после того, как взяли её в аренду
 
 
-Приложение написано на **Java**, использует **Spring Boot**, **Maven** и **Hibernate**,
-API соответствует **REST**, данные хранятся в БД **H2**.
-Тестовое покрытие кода 0%. Пример кода:
+Приложение написано на **Java**, использует **Spring Boot**, **Maven**, **Hibernate**, **JUnit 5**, 
+**Mockito**, **MockMvc**, API соответствует **REST**, данные хранятся в БД **PostgreSQL**, **H2**.
+Тестовое покрытие кода - 92% строк кода. Пример кода:
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -25,3 +25,5 @@ public class Main {
 }
 ```
 ------
+
+![image](src/main/resources/ER-diagram.png)

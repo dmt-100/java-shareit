@@ -1,17 +1,23 @@
 package ru.practicum.shareit.item.dto;
 
-import javax.validation.constraints.NotEmpty;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
-import lombok.Data;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode
 public class ItemDto {
-
     private Long id;
-    @NotEmpty(message = "Ошибка! Краткое название вещи не может быть пустым.")
+    @NotBlank
     private String name;
-    @NotEmpty(message = "Ошибка! Развёрнутое описание вещи не может быть пустым.")
+    @NotBlank
     private String description;
+    @NotNull
     private Boolean available;
-
+    private Long owner;
+    private Long requestId;
 }
