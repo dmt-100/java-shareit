@@ -1,127 +1,100 @@
 package ru.practicum.shareit.request;
 
-import ru.practicum.shareit.request.dto.ItemRequestDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.request.dto.ItemRequestDtoOut;
 import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(controllers = ItemRequestController.class)
 class ItemRequestControllerTest {
 
-    @Mock
-    private ItemRequestServiceImpl itemRequestService;
+    @MockBean
+    private ItemRequestServiceImpl requestService;
 
-    @InjectMocks
-    private ItemRequestController itemRequestController;
+    @Autowired
+    private ObjectMapper mapper;
+
+    @Autowired
+    private MockMvc mvc;
+
+    private final ItemRequestDtoOut requestDto = new ItemRequestDtoOut(
+            1L,
+            "description",
+            2L,
+            LocalDateTime.of(2023, 7, 1, 12, 12, 12));
 
     @Test
-    @DisplayName("получены все свои запросы вместе с данными об ответах на них, " +
-            "когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllItemRequestsByUser_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByUser(userId);
+    void saveNewRequest() throws Exception {
+        when(requestService.saveNewRequest(any(), anyLong())).thenReturn(requestDto);
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(itemRequestService, times(1)).getAllItemRequestsByUser(userId);
+        mvc.perform(post("/requests")
+                        .content(mapper.writeValueAsString(requestDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(requestDto)))
+                .andExpect(jsonPath("$.id", is(requestDto.getId()), Long.class))
+                .andExpect(jsonPath("$.description", is(requestDto.getDescription()), String.class))
+                .andExpect(jsonPath("$.requestorId", is(requestDto.getRequestorId()), Long.class));
     }
 
     @Test
-    @DisplayName("получены все свои запросы вместе с данными об ответах на них, " +
-            "когда вызваны, то ответ статус ок и непустое тело")
-    void getAllItemRequestsByUser_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
-        Long userId = 0L;
-        List<ItemRequestDto> expectedItemRequests = List.of(new ItemRequestDto());
-        when(itemRequestService.getAllItemRequestsByUser(userId)).thenReturn(expectedItemRequests);
+    void getRequestsByRequestor() throws Exception {
+        when(requestService.getRequestsByRequestor(anyLong())).thenReturn(List.of(requestDto));
 
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByUser(userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequests, equalTo(response.getBody()));
-        verify(itemRequestService, times(1)).getAllItemRequestsByUser(userId);
+        mvc.perform(get("/requests")
+                        .content(mapper.writeValueAsString(requestDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(List.of(requestDto))));
     }
 
     @Test
-    @DisplayName("получены все запросы, созданные другими пользователями, " +
-            "когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllItemRequestsByOtherUsers_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
+    void getAllRequests() throws Exception {
+        when(requestService.getAllRequests(anyInt(), anyInt(), anyLong())).thenReturn(List.of(requestDto));
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(itemRequestService, times(1))
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
-
+        mvc.perform(get("/requests/all")
+                        .content(mapper.writeValueAsString(requestDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(List.of(requestDto))));
     }
 
     @Test
-    @DisplayName("получены все запросы, созданные другими пользователями, " +
-            "когда вызваны, то ответ статус ок и непустое тело")
-    void getAllItemRequestsByOtherUsers_whenInvoked_thenResponseStatusOkWithItemRequestsCollectionInBody() {
-        Long userId = 0L;
-        List<ItemRequestDto> expectedItemRequests = List.of(new ItemRequestDto());
-        when(itemRequestService.getAllItemRequestsByOtherUsers(userId, 0, 0))
-                .thenReturn(expectedItemRequests);
+    void getRequestById() throws Exception {
+        when(requestService.getRequestById(anyLong(), anyLong())).thenReturn(requestDto);
 
-        ResponseEntity<List<ItemRequestDto>> response = itemRequestController
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequests, equalTo(response.getBody()));
-        verify(itemRequestService, times(1))
-                .getAllItemRequestsByOtherUsers(userId, 0, 0);
+        mvc.perform(get("/requests/1")
+                        .content(mapper.writeValueAsString(requestDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(requestDto)));
     }
-
-    @Test
-    @DisplayName("получен запрос по ид, когда запрос найден, то ответ статус ок, и он возвращается")
-    void getItemRequestById_whenItemRequestFound_thenReturnedItemRequest() {
-        long requestId = 0L;
-        long userId = 0L;
-        ItemRequestDto expectedItemRequest = new ItemRequestDto();
-        when(itemRequestService.getItemRequestById(userId, requestId)).thenReturn(expectedItemRequest);
-
-        ResponseEntity<ItemRequestDto> response = itemRequestController
-                .getItemRequestById(requestId, userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequest, equalTo(response.getBody()));
-        verify(itemRequestService, times(1))
-                .getItemRequestById(userId, requestId);
-    }
-
-    @Test
-    @DisplayName("сохранен запрос, когда запрос валиден, то ответ статус ок, и он сохраняется")
-    void saveItemRequest_whenItemRequestValid_thenSavedItemRequest() {
-        ItemRequestDto expectedItemRequest = new ItemRequestDto();
-        long userId = 0L;
-        when(itemRequestService.saveItemRequest(userId, expectedItemRequest))
-                .thenReturn(expectedItemRequest);
-
-        ResponseEntity<ItemRequestDto> response = itemRequestController
-                .saveItemRequest(userId, expectedItemRequest);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedItemRequest, equalTo(response.getBody()));
-        verify(itemRequestService, times(1))
-                .saveItemRequest(userId, expectedItemRequest);
-    }
-
 }

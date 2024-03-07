@@ -1,88 +1,58 @@
 package ru.practicum.shareit.item;
 
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.comment.dto.CommentDtoIn;
+import ru.practicum.shareit.item.comment.dto.CommentDtoOut;
+import ru.practicum.shareit.item.dto.ItemDtoIn;
+import ru.practicum.shareit.item.dto.ItemDtoOut;
 import ru.practicum.shareit.item.service.ItemService;
 
 import java.util.List;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/items")
-@RequiredArgsConstructor
 public class ItemController {
-
     private final ItemService itemService;
 
-    @GetMapping
-    /**
-     * Просмотр владельцем списка всех его вещей
-     */
-    public ResponseEntity<List<ItemDto>> getAllItemsByUser(
-            @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestParam Integer from, @RequestParam Integer size) {
-        List<ItemDto> items = itemService.getAllItemsByUser(userId, from, size);
-        return ResponseEntity.ok().body(items);
-    }
-
-    @GetMapping("/{itemId}")
-    /**
-     * Получение вещи по id с комментариями
-     */
-    public ResponseEntity<ItemDto> getItemById(
-            @RequestHeader("X-Sharer-User-Id") Long userId,
-            @PathVariable Long itemId) {
-        ItemDto itemDto = itemService.getItemById(userId, itemId);
-        return ResponseEntity.ok(itemDto);
-    }
-
     @PostMapping
-    /**
-     * Добавление новой вещи
-     */
-    public ResponseEntity<ItemDto> saveItem(
-            @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestBody ItemDto itemDto) {
-        itemDto = itemService.saveItem(userId, itemDto);
-        return ResponseEntity.ok(itemDto);
+    public ItemDtoOut saveNewItem(@RequestBody ItemDtoIn itemDtoIn,
+                                  @RequestHeader("X-Sharer-User-Id") long userId) {
+        return itemService.saveNewItem(itemDtoIn, userId);
     }
 
     @PatchMapping("/{itemId}")
-    /**
-     * Редактирование вещи
-     */
-    public ResponseEntity<ItemDto> updateItem(
-            @RequestHeader("X-Sharer-User-Id") Long userId,
-            @PathVariable Long itemId, @RequestBody ItemDto itemDto) {
-        itemDto = itemService.updateItem(userId, itemId, itemDto);
-        return ResponseEntity.ok(itemDto);
+    public ItemDtoOut updateItem(@PathVariable long itemId,
+                                 @RequestBody ItemDtoIn itemDtoIn,
+                                 @RequestHeader("X-Sharer-User-Id") long userId) {
+        return itemService.updateItem(itemId, itemDtoIn, userId);
+    }
+
+    @GetMapping("/{itemId}")
+    public ItemDtoOut getItemById(@PathVariable long itemId,
+                                  @RequestHeader("X-Sharer-User-Id") long userId) {
+        return itemService.getItemById(itemId, userId);
+    }
+
+    @GetMapping
+    public List<ItemDtoOut> getItemsByOwner(@RequestParam(defaultValue = "1") Integer from,
+                                            @RequestParam(defaultValue = "10") Integer size,
+                                            @RequestHeader("X-Sharer-User-Id") long userId) {
+        return itemService.getItemsByOwner(from, size, userId);
     }
 
     @GetMapping("/search")
-    /**
-     * Поиск вещи потенциальным арендатором по тексту
-     */
-    public ResponseEntity<List<ItemDto>> findItems(
-            @RequestHeader("X-Sharer-User-Id") Long userId,
-            @RequestParam String text,
-            @RequestParam Integer from, @RequestParam Integer size) {
-        List<ItemDto> items = itemService.findItems(userId, text, from, size);
-        return ResponseEntity.ok().body(items);
+    public List<ItemDtoOut> getItemBySearch(@RequestParam(defaultValue = "1") Integer from,
+                                            @RequestParam(defaultValue = "10") Integer size,
+                                            @RequestParam String text) {
+        return itemService.getItemBySearch(from, size, text);
     }
 
     @PostMapping("/{itemId}/comment")
-    /**
-     * Добавление комментария к вещи
-     */
-    public ResponseEntity<CommentDto> saveComment(
-            @RequestHeader("X-Sharer-User-Id") Long userId,
-            @PathVariable Long itemId,
-            @RequestBody CommentDto commentDto) {
-        commentDto = itemService.saveComment(userId, itemId, commentDto);
-        return ResponseEntity.ok(commentDto);
+    public CommentDtoOut saveNewComment(@PathVariable long itemId,
+                                        @RequestBody CommentDtoIn commentDtoIn,
+                                        @RequestHeader("X-Sharer-User-Id") long userId) {
+        return itemService.saveNewComment(itemId, commentDtoIn, userId);
     }
-
 }

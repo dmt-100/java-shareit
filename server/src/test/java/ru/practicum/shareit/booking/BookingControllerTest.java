@@ -1,145 +1,123 @@
 package ru.practicum.shareit.booking;
 
-import ru.practicum.shareit.booking.dto.BookingInDto;
-import ru.practicum.shareit.booking.dto.BookingOutDto;
-import ru.practicum.shareit.booking.model.StateBooking;
-import ru.practicum.shareit.booking.model.StatusBooking;
-import ru.practicum.shareit.booking.service.BookingServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.practicum.shareit.booking.dto.BookingDtoIn;
+import ru.practicum.shareit.booking.dto.BookingDtoOut;
+import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.item.dto.ItemDtoShort;
+import ru.practicum.shareit.user.dto.UserDtoShort;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(controllers = BookingController.class)
 class BookingControllerTest {
 
-    @Mock
-    private BookingServiceImpl bookingService;
+    @MockBean
+    private BookingService bookingService;
 
-    @InjectMocks
-    private BookingController bookingController;
+    @Autowired
+    private ObjectMapper mapper;
+
+    @Autowired
+    private MockMvc mvc;
+
+    private final BookingDtoIn bookingDto = new BookingDtoIn(
+            LocalDateTime.now().plusDays(1),
+            LocalDateTime.now().plusDays(2),
+            1L);
+    private final BookingDtoOut bookingDtoOut = new BookingDtoOut(
+            1L,
+            LocalDateTime.now().plusDays(1),
+            LocalDateTime.now().plusDays(2),
+            new ItemDtoShort(1L, "item"),
+            new UserDtoShort(1L, "user"),
+            null);
 
     @Test
-    @DisplayName("получены все бронирования пользователя, когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllBookingsByUser_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<BookingOutDto>> response = bookingController
-                .getAllBookingsByUser(userId, StateBooking.ALL, 0, 0);
+    void saveNewBooking() throws Exception {
+        when(bookingService.saveNewBooking(any(), anyLong())).thenReturn(bookingDtoOut);
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(bookingService, times(1))
-                .getAllBookingsByUser(userId, StateBooking.ALL, 0, 0);
+        mvc.perform(post("/bookings")
+                        .content(mapper.writeValueAsString(bookingDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(bookingDtoOut)));
     }
 
     @Test
-    @DisplayName("получены все бронирования пользователя, когда вызваны, то ответ статус ок и непустое тело")
-    void getAllBookingsByUser_whenInvoked_thenResponseStatusOkWithBookingsCollectionInBody() {
-        Long userId = 0L;
-        List<BookingOutDto> expectedBookings = List.of(new BookingOutDto());
-        when(bookingService.getAllBookingsByUser(userId, StateBooking.ALL, 0, 0)).thenReturn(expectedBookings);
+    void approve() throws Exception {
+        when(bookingService.approve(anyLong(), any(), anyLong())).thenReturn(bookingDtoOut);
+        bookingDtoOut.setStatus(BookingStatus.APPROVED);
 
-        ResponseEntity<List<BookingOutDto>> response = bookingController
-                .getAllBookingsByUser(userId, StateBooking.ALL, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedBookings, equalTo(response.getBody()));
-        verify(bookingService, times(1))
-                .getAllBookingsByUser(userId, StateBooking.ALL, 0, 0);
+        mvc.perform(patch("/bookings/1?approved=true")
+                        .content(mapper.writeValueAsString(bookingDtoOut))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(bookingDtoOut)));
     }
 
     @Test
-    @DisplayName("получены все бронирования для всех вещей владельца, " +
-            "когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllBookingsAllItemsByOwner_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        Long userId = 0L;
-        ResponseEntity<List<BookingOutDto>> response = bookingController
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 0);
+    void getBookingById() throws Exception {
+        when(bookingService.getBookingById(anyLong(), anyLong())).thenReturn(bookingDtoOut);
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(bookingService, times(1))
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 0);
+        mvc.perform(get("/bookings/1")
+                        .content(mapper.writeValueAsString(bookingDtoOut))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(bookingDtoOut)));
     }
 
     @Test
-    @DisplayName("получены все бронирования для всех вещей владельца, " +
-            "когда вызваны, то ответ статус ок и непустое тело")
-    void getAllBookingsAllItemsByOwner_whenInvoked_thenResponseStatusOkWithBookingsCollectionInBody() {
-        Long userId = 0L;
-        List<BookingOutDto> expectedBookings = List.of(new BookingOutDto());
-        when(bookingService.getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 0))
-                .thenReturn(expectedBookings);
+    void getAllByBooker() throws Exception {
+        when(bookingService.getAllByBooker(anyInt(), anyInt(), anyString(), anyLong()))
+                .thenReturn(List.of(bookingDtoOut));
 
-        ResponseEntity<List<BookingOutDto>> response = bookingController
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 0);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedBookings, equalTo(response.getBody()));
-        verify(bookingService, times(1))
-                .getAllBookingsAllItemsByOwner(userId, StateBooking.ALL, 0, 0);
+        mvc.perform(get("/bookings?state=ALL")
+                        .content(mapper.writeValueAsString(bookingDtoOut))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(List.of(bookingDtoOut))));
     }
 
     @Test
-    @DisplayName("получено бронирование по ид, когда вещь найдена, то ответ статус ок, и оно возвращается")
-    void getBookingById_whenBookingFound_thenReturnedBooking() {
-        long bookingId = 0L;
-        long userId = 0L;
-        BookingOutDto expectedBooking = new BookingOutDto();
-        when(bookingService.getBookingById(userId, bookingId)).thenReturn(expectedBooking);
+    void getAllByOwner() throws Exception {
+        when(bookingService.getAllByOwner(anyInt(), anyInt(), anyString(), anyLong()))
+                .thenReturn(List.of(bookingDtoOut));
 
-        ResponseEntity<BookingOutDto> response = bookingController.getBookingById(userId, bookingId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedBooking, equalTo(response.getBody()));
-        verify(bookingService, times(1)).getBookingById(userId, bookingId);
+        mvc.perform(get("/bookings/owner?state=ALL")
+                        .content(mapper.writeValueAsString(bookingDtoOut))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sharer-User-Id", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json(mapper.writeValueAsString(List.of(bookingDtoOut))));
     }
-
-    @Test
-    @DisplayName("сохранено бронирование, когда бронирование валидно, " +
-            "то ответ статус ок, и оно сохраняется")
-    void saveBooking_whenBookingValid_thenSavedBooking() {
-        BookingInDto bookingIn = new BookingInDto();
-        BookingOutDto expectedBooking = new BookingOutDto();
-        long userId = 0L;
-        when(bookingService.saveBooking(userId, bookingIn)).thenReturn(expectedBooking);
-
-        ResponseEntity<BookingOutDto> response = bookingController
-                .saveBooking(userId, bookingIn);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedBooking, equalTo(response.getBody()));
-        verify(bookingService, times(1)).saveBooking(userId, bookingIn);
-    }
-
-    @Test
-    @DisplayName("обновлено бронирование, когда бронирование валидно, то ответ статус ок, и оно обновляется")
-    void updateBooking_whenBookingValid_thenUpdatedBooking() {
-        Long bookingId = 0L;
-        Long userId = 0L;
-        BookingOutDto newBooking = new BookingOutDto();
-        newBooking.setStatus(StatusBooking.APPROVED);
-        when(bookingService.updateBooking(userId, bookingId, null)).thenReturn(newBooking);
-
-        ResponseEntity<BookingOutDto> response = bookingController
-                .updateBooking(userId, bookingId, null);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(newBooking, equalTo(response.getBody()));
-        verify(bookingService, times(1))
-                .updateBooking(userId, bookingId, null);
-    }
-
 }

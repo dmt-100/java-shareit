@@ -1,10 +1,5 @@
 package ru.practicum.shareit.request;
 
-import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.request.dto.ItemRequestDto;
-
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -12,6 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import ru.practicum.shareit.client.BaseClient;
+import ru.practicum.shareit.request.dto.ItemRequestDtoRequest;
+
+import java.util.Map;
 
 @Service
 public class ItemRequestClient extends BaseClient {
@@ -27,11 +26,15 @@ public class ItemRequestClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> getAllItemRequestsByUser(Long userId) {
+    public ResponseEntity<Object> saveNewRequest(ItemRequestDtoRequest requestDto, long userId) {
+        return post("", userId, requestDto);
+    }
+
+    public ResponseEntity<Object> getRequestsByRequestor(long userId) {
         return get("", userId);
     }
 
-    public ResponseEntity<Object> getAllItemRequestsByOtherUsers(Long userId, Integer from, Integer size) {
+    public ResponseEntity<Object> getAllRequests(Integer from, Integer size, long userId) {
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
@@ -39,12 +42,8 @@ public class ItemRequestClient extends BaseClient {
         return get("/all?from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> getItemRequestById(Long userId, Long requestId) {
+    public ResponseEntity<Object> getRequestById(long requestId, long userId) {
         return get("/" + requestId, userId);
     }
-
-    public ResponseEntity<Object> saveItemRequest(Long userId, ItemRequestDto itemRequestDto) {
-        return post("", userId, itemRequestDto);
-    }
-
 }
+

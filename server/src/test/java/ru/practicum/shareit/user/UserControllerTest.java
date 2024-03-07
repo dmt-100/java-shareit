@@ -1,100 +1,93 @@
 package ru.practicum.shareit.user;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.service.UserService;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(controllers = UserController.class)
 class UserControllerTest {
 
-    @Mock
+    @MockBean
     private UserService userService;
 
-    @InjectMocks
-    private UserController userController;
+    @Autowired
+    private ObjectMapper mapper;
+
+    @Autowired
+    private MockMvc mvc;
+
+    private final UserDto userDto = new UserDto(1L, "User", "user@mail.ru");
+    private final UserDto userNoEmail = new UserDto(1L, "User", "");
 
     @Test
-    @DisplayName("получены все пользователи, когда вызваны по умолчанию, то ответ статус ок и пустое тело")
-    void getAllUsers_whenInvokedDefault_thenResponseStatusOkWithEmptyBody() {
-        ResponseEntity<List<UserDto>> response = userController.getAllUsers();
+    void getAllUsers() throws Exception {
+        when(userService.getAllUsers()).thenReturn(List.of(userDto));
 
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(response.getBody(), empty());
-        verify(userService, times(1)).getAllUsers();
+        mvc.perform(get("/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(userDto.getId()), Long.class))
+                .andExpect(jsonPath("$[0].name", is(userDto.getName())))
+                .andExpect(jsonPath("$[0].email", is(userDto.getEmail())));
     }
 
     @Test
-    @DisplayName("получены все пользователи, когда вызваны, то ответ статус ок и непустое тело")
-    void getAllUsers_whenInvoked_thenResponseStatusOkWithUsersCollectionInBody() {
-        List<UserDto> expectedUsers = List.of(new UserDto());
-        when(userService.getAllUsers()).thenReturn(expectedUsers);
+    void getUserById() throws Exception {
+        when(userService.getUserById(anyInt())).thenReturn(userDto);
 
-        ResponseEntity<List<UserDto>> response = userController.getAllUsers();
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedUsers, equalTo(response.getBody()));
-        verify(userService, times(1)).getAllUsers();
+        mvc.perform(get("/users/1"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("получен пользователь по ид, когда пользователь найден, " +
-            "то ответ статус ок, и он возвращается")
-    void getUserById_whenUserFound_thenReturnedUser() {
-        long userId = 0L;
-        UserDto expectedUser = new UserDto();
-        when(userService.getUserById(userId)).thenReturn(expectedUser);
+    void saveNewUser() throws Exception {
+        when(userService.saveNewUser(any())).thenReturn(userDto);
 
-        ResponseEntity<UserDto> response = userController.getUserById(userId);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedUser, equalTo(response.getBody()));
-        verify(userService, times(1)).getUserById(userId);
+        mvc.perform(post("/users")
+                        .content(mapper.writeValueAsString(userDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(userDto.getId()), Long.class))
+                .andExpect(jsonPath("$.name", is(userDto.getName()), String.class))
+                .andExpect(jsonPath("$.email", is(userDto.getEmail()), String.class));
     }
 
     @Test
-    @DisplayName("сохранен пользователь, когда пользователь валиден, " +
-            "то ответ статус ок, и он сохраняется")
-    void saveUser_whenUserValid_thenSavedUser() {
-        UserDto expectedUser = new UserDto();
-        when(userService.saveUser(expectedUser)).thenReturn(expectedUser);
+    void updateUser() throws Exception {
+        when(userService.updateUser(anyInt(), any())).thenReturn(userDto);
 
-        ResponseEntity<UserDto> response = userController.saveUser(expectedUser);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(expectedUser, equalTo(response.getBody()));
-        verify(userService, times(1)).saveUser(expectedUser);
+        mvc.perform(patch("/users/1", userDto.getId())
+                        .content(mapper.writeValueAsString(userDto))
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("обновлен пользователь, когда пользователь валиден, " +
-            "то ответ статус ок, и он обновляется")
-    void updateUser_whenUserValid_thenUpdatedUser() {
-        Long userId = 0L;
-        UserDto newUser = new UserDto();
-        newUser.setName("2");
-        newUser.setEmail("2@mail.ru");
-        when(userService.updateUser(userId, newUser)).thenReturn(newUser);
-
-        ResponseEntity<UserDto> response = userController.updateUser(userId, newUser);
-
-        assertThat(HttpStatus.OK, equalTo(response.getStatusCode()));
-        assertThat(newUser, equalTo(response.getBody()));
-        verify(userService, times(1)).updateUser(userId, newUser);
+    void deleteUser() throws Exception {
+        mvc.perform(delete("/users/100"))
+                .andExpect(status().isOk());
+        Mockito.verify(userService, Mockito.times(1))
+                .deleteUser(anyLong());
     }
-
 }
