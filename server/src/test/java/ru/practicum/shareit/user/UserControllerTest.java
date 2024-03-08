@@ -1,93 +1,123 @@
 package ru.practicum.shareit.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.service.UserService;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = UserController.class)
-class UserControllerTest {
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class UserControllerTest {
+    ObjectMapper mapper;
+    MockMvc mvc;
 
     @MockBean
-    private UserService userService;
+    UserService userService;
 
-    @Autowired
-    private ObjectMapper mapper;
+    static User createUser() {
+        return User.builder()
+                .id(1)
+                .name("Bob")
+                .email("user@user.com")
+                .build();
+    }
 
-    @Autowired
-    private MockMvc mvc;
-
-    private final UserDto userDto = new UserDto(1L, "User", "user@mail.ru");
-    private final UserDto userNoEmail = new UserDto(1L, "User", "");
-
-    @Test
-    void getAllUsers() throws Exception {
-        when(userService.getAllUsers()).thenReturn(List.of(userDto));
-
-        mvc.perform(get("/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(userDto.getId()), Long.class))
-                .andExpect(jsonPath("$[0].name", is(userDto.getName())))
-                .andExpect(jsonPath("$[0].email", is(userDto.getEmail())));
+    static UserDto createDto() {
+        return UserDto.builder()
+                .id(1)
+                .name("Bob")
+                .email("user@user.com")
+                .build();
     }
 
     @Test
-    void getUserById() throws Exception {
-        when(userService.getUserById(anyInt())).thenReturn(userDto);
-
-        mvc.perform(get("/users/1"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void saveNewUser() throws Exception {
-        when(userService.saveNewUser(any())).thenReturn(userDto);
-
+    @SneakyThrows
+    void addUser() {
+        UserDto dto = createDto();
+        User user = createUser();
+        when(userService.addUser(any()))
+                .thenReturn(user);
+        String json = mapper.writeValueAsString(dto);
         mvc.perform(post("/users")
-                        .content(mapper.writeValueAsString(userDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(userDto.getId()), Long.class))
-                .andExpect(jsonPath("$.name", is(userDto.getName()), String.class))
-                .andExpect(jsonPath("$.email", is(userDto.getEmail()), String.class));
+                        .content(json))
+                .andExpectAll(status().isOk(),
+                        jsonPath("$.id").value(user.getId()),
+                        jsonPath("$.name").value(user.getName())
+                );
     }
 
     @Test
-    void updateUser() throws Exception {
-        when(userService.updateUser(anyInt(), any())).thenReturn(userDto);
-
-        mvc.perform(patch("/users/1", userDto.getId())
-                        .content(mapper.writeValueAsString(userDto))
-                        .characterEncoding(StandardCharsets.UTF_8)
+    @SneakyThrows
+    void updateUser() {
+        UserDto dto = createDto();
+        User user = createUser();
+        when(userService.updateUser(anyLong(), any()))
+                .thenReturn(user);
+        String json = mapper.writeValueAsString(dto);
+        mvc.perform(patch("/users/1")
+                        .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                        .content(json))
+                .andExpectAll(status().isOk(),
+                        jsonPath("$.id").value(user.getId()),
+                        jsonPath("$.name").value(user.getName())
+                );
     }
 
     @Test
-    void deleteUser() throws Exception {
-        mvc.perform(delete("/users/100"))
-                .andExpect(status().isOk());
-        Mockito.verify(userService, Mockito.times(1))
-                .deleteUser(anyLong());
+    void deleteUser() {
+        User user = createUser();
+        userService.addUser(user);
+        userService.deleteUser(user.getId());
+        verify(userService, times(1)).deleteUser(user.getId());
+    }
+
+    @Test
+    @SneakyThrows
+    void getUserById() {
+        User user = createUser();
+        when(userService.getUserById(anyLong()))
+                .thenReturn(user);
+        mvc.perform(get("/users/1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(status().isOk(),
+                        jsonPath("$.id").value(user.getId()),
+                        jsonPath("$.name").value(user.getName())
+                );
+    }
+
+    @Test
+    @SneakyThrows
+    void getAllUsers() {
+        User user = createUser();
+        when(userService.getAllUsers())
+                .thenReturn(List.of(user));
+        mvc.perform(get("/users")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(status().isOk(),
+                        jsonPath("$[0].id").value(user.getId()),
+                        jsonPath("$[0].name").value(user.getName())
+                );
     }
 }

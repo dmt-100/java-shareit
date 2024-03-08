@@ -8,9 +8,8 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.item.dto.CommentDtoRequest;
-import ru.practicum.shareit.item.dto.ItemDtoRequest;
-
+import ru.practicum.shareit.item.dto.CommentRequestDto;
+import ru.practicum.shareit.item.dto.ItemDto;
 
 import java.util.Map;
 
@@ -28,19 +27,15 @@ public class ItemClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> saveNewItem(ItemDtoRequest itemDto, long userId) {
-        return post("", userId, itemDto);
+    public ResponseEntity<Object> addItem(Long id, ItemDto itemDto) {
+        return post("", id, itemDto);
     }
 
-    public ResponseEntity<Object> updateItem(long itemId, ItemDtoRequest itemDto, long userId) {
-        return patch("/" + itemId, userId, itemDto);
+    public ResponseEntity<Object> getItem(Long userId, Long id) {
+        return get("/" + id, userId);
     }
 
-    public ResponseEntity<Object> getItemById(long itemId, long userId) {
-        return get("/" + itemId, userId);
-    }
-
-    public ResponseEntity<Object> getItemsByOwner(Integer from, Integer size, long userId) {
+    public ResponseEntity<Object> getOwnerItems(Long userId, Integer from, Integer size) {
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
@@ -48,7 +43,11 @@ public class ItemClient extends BaseClient {
         return get("?from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> getItemBySearch(Integer from, Integer size, String text, long userId) {
+    public ResponseEntity<Object> updateItem(Long userId, Long id, ItemDto itemDto) {
+        return patch("/" + id, userId, itemDto);
+    }
+
+    public ResponseEntity<Object> findItemByNameOrDescription(Long userId, String text, Integer from, Integer size) {
         Map<String, Object> parameters = Map.of(
                 "text", text,
                 "from", from,
@@ -57,8 +56,7 @@ public class ItemClient extends BaseClient {
         return get("/search?text={text}&from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> saveNewComment(long itemId, CommentDtoRequest commentDto, long userId) {
-        return post("/" + itemId + "/comment", userId, commentDto);
+    public ResponseEntity<Object> addComment(Long userId, Long itemId, CommentRequestDto commentRequest) {
+        return post("/" + itemId + "/comment", userId, commentRequest);
     }
 }
-

@@ -1,26 +1,111 @@
-# Share it
-Учебный проект, представляющий из себя приложение для обмена вещами среди друзей. Позволяет хранить в базе данных информацию о пользователях, вещях, которые они готовы предоставить на прокат, создавать запросы на бронирование (аренду), обрабатывать запросы (принимать или отклонять, т.д.), добавлять комментарии пользователей.
+<h1 align = "center">Shareit Service</h1>
 
-## Проект был реализован в течение 4 спринтов:
-1. Реализация моделей item и user, хранения данных в оперативной памяти, DTO и маппер-классов, каркаса приложения и части вэб-слоя.  
-Стэк: Java 11, Spring Boot, Maven, REST, Lombok, Postman.
-2. Реализация моделей booking, comments, хранения в БД.  
-Стек: JPA, Hibernate, PostgreSQL, H2(для тестов).
-3. Реализация модели request, пагинации, тестов для сервисов, контроллеров, репозиториев, мапперов, json. Покрытие тестами 90%.  
-Стек: Junit5, Mockito, Hamcrest.
-4. Реализация микросервисной архитектуры. Добавление модуля  gateway - сюда перенесена вся логика валидации входных данных кроме той, которая требует работы с БД.  
-Стек: микросервисы, Docker
+<div align="center">
+  <a>
+    <img src="icon.png" alt="Logo" width="80" height="80">
+  </a>
+</div>
 
-[Тесты Postman](https://github.com/yandex-praktikum/java-shareit/blob/add-docker/postman/sprint.json)
+ <h3>Удобный сервис для поиска и аренды необходимых вещей.</h3>
 
-### Иструкция по развертыванию
-* mvn clean package
-* mvn install
-* docker-compose build
-* docker-compose up -d
-* gateway: http://localhost:8080
-* основной сервис: http://localhost:9090
+<details>
+  <summary>Содержание</summary>
+  <ol>
+    <li>
+      <a href="#о-проекте">О проекте</a>
+      <ul>
+        <li><a href="#создан-при-помощи">Создан при помощи</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#запуск-проекта">Запуск проекта</a>
+      <ul>
+        <li><a href="#приготовления">Приготовления</a></li>
+        <li><a href="#установка">Установка</a></li>
+      </ul>
+    </li>
+    <li><a href="#использование">Использование</a></li>
+  </ol>
+</details>
 
-### Схема базы данных
-![Схема](shareit.png)
 
+
+<!-- ABOUT THE PROJECT -->
+## О проекте
+
+Проект основан на микросервисной архитектуре с использованием Docker контейнеров.
+
+Сервис предоставляет следующий функционал:
+* Регистрация пользователей, получение информации о уже зарегестрированных пользователях
+* Добавление предметов и заявок на их аренду
+* Комментирование успешно завершённой аренды
+* Возможность оставить запрос с описанием желаемого предмета
+
+Проект состоит из 3-х микросервисов: Gateway - валидация запросов, Server - бизнес логика, DB - база данных. 
+Каждый микросервис поднимается в своём докер контейнере.
+
+<p align="right">(<a href="#readme-top">к заглавию</a>)</p>
+
+
+
+### Создан при помощи
+
+* ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
+* ![Spring](https://img.shields.io/badge/spring-%236DB33F.svg?style=for-the-badge&logo=spring&logoColor=white)
+* ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+* ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+
+<p align="right">(<a href="#readme-top">к заглавию</a>)</p>
+
+
+
+<!-- GETTING STARTED -->
+## Запуск проекта
+
+Далее описаны требования для запуска проекта на локальной машине:
+
+### Приготовления
+
+Для работы приложение требуется установленный и запущенный Docker daemon. Для проверки его наличия введите следующую команду в консоли (Windows)
+* cmd
+  ```sh
+  docker version
+  ```
+Если выводится информация о установленной системе, переходим к следующему шагу.
+
+### Установка
+
+_Далее описаны пункты для запуска проекта_
+
+1. Клонируйте репозиторий
+   ```cmd
+   git clone https://github.com/Elessarov1/Shareit.git
+   ```
+2. Перейдите в корневую папку проекта
+   ```cmd
+   cd {путь да корневой директории}/ShareIt
+   ```
+4. Вызовите утилиту что бы поднять все контейнеры
+   ```cmd
+   docker-compose up
+   ```
+
+<p align="right">(<a href="#readme-top">к заглавию</a>)</p>
+
+
+
+<!-- USAGE EXAMPLES -->
+## Использование
+
+_Postman-коллекция с примерами запросов - [Ссылка](https://github.com/yandex-praktikum/java-shareit/blob/add-docker/postman/sprint.json)_
+
+<p align="right">(<a href="#readme-top">к заглавию</a>)</p>
+
+<!-- CONTACT -->
+## Контакты
+
+ Афанасьев Александр - Телеграм(@Elessarov) - Alex906026@mail.ru
+
+Ссылка на проект: [https://github.com/Elessarov1/Shareit](https://github.com/Elessarov1/Shareit)
+
+<p align="right">(<a href="#readme-top">к заглавию</a>)</p>

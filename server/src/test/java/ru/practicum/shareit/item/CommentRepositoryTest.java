@@ -1,52 +1,100 @@
 package ru.practicum.shareit.item;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.annotation.DirtiesContext;
-import ru.practicum.shareit.item.comment.Comment;
-import ru.practicum.shareit.item.comment.CommentRepository;
-import ru.practicum.shareit.user.User;
-import ru.practicum.shareit.user.UserRepository;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import ru.practicum.shareit.item.model.Comment;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
+import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 
 @DataJpaTest
-class CommentRepositoryTest {
-
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CommentRepositoryTest {
     @Autowired
-    private CommentRepository commentRepository;
+    TestEntityManager manager;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ItemRepository itemRepository;
+    CommentRepository repository;
+    Item item;
+    List<Comment> comments;
+    List<Comment> emptyList;
+    User owner;
+    User booker;
+    Comment comment;
 
+    static User createOwner() {
+        return User.builder()
+                .name("Bob")
+                .email("user@user.com")
+                .build();
+    }
 
-    private final User user = new User(null, "user", "user@mail.ru");
-    private final Item item = new Item(null, "item", "cool", true, user, null);
-    private final Comment comment = new Comment(null, "abc", item, user,
-            LocalDateTime.of(2023, 7, 1, 12, 12, 12));
+    static User createBooker() {
+        return User.builder()
+                .name("Tim")
+                .email("booker@user.com")
+                .build();
+    }
+
+    static Item createItem(User owner) {
+        return Item.builder()
+                .name("pen")
+                .description("smth")
+                .available(true)
+                .owner(owner)
+                .build();
+    }
+
+    static Comment createComment(User booker, Item item) {
+        return Comment.builder()
+                .item(item)
+                .created(LocalDateTime.now())
+                .author(booker)
+                .text("text")
+                .build();
+    }
 
     @BeforeEach
     void setUp() {
-        userRepository.save(user);
-        itemRepository.save(item);
-        commentRepository.save(comment);
+        owner = createOwner();
+        booker = createBooker();
+        item = createItem(owner);
+        comment = createComment(booker, item);
+        manager.persist(owner);
+        manager.persist(booker);
+        manager.persist(item);
+        manager.persist(comment);
     }
 
     @Test
-    @DirtiesContext
     void findAllByItemId() {
-        List<Comment> comments = commentRepository.findAllByItemId(item.getId());
+        long nonExistedId = item.getId() + owner.getId();
+        comments = repository.findAllByItemId(item.getId());
+        emptyList = repository.findAllByItemId(nonExistedId);
 
-        assertThat(comments.get(0).getId(), notNullValue());
-        assertThat(comments.get(0).getText(), equalTo(comment.getText()));
         assertThat(comments.size(), equalTo(1));
+        assertThat(comments.get(0), equalTo(comment));
+        assertThat(emptyList.size(), equalTo(0));
+    }
+
+    @Test
+    void findAllByItemIds() {
+        long nonExistedId = item.getId() + owner.getId();
+        comments = repository.findAllByItemIds(List.of(item.getId()));
+        emptyList = repository.findAllByItemIds(List.of(nonExistedId));
+
+        assertThat(comments.size(), equalTo(1));
+        assertThat(comments.get(0), equalTo(comment));
+        assertThat(emptyList.size(), equalTo(0));
     }
 }
