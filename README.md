@@ -71,7 +71,7 @@
   ```sh
   docker version
   ```
-Если выводится информация о установленной системе, переходим к следующему шагу.
+  Если выводится информация о установленной системе, переходим к следующему шагу.
 
 ### Установка
 
@@ -79,7 +79,7 @@ _Далее описаны пункты для запуска проекта_
 
 1. Клонируйте репозиторий
    ```cmd
-   git clone https://github.com/Elessarov1/Shareit.git
+   git clone https://github.com/dmt-100/shareit.git
    ```
 2. Перейдите в корневую папку проекта
    ```cmd
@@ -99,13 +99,8 @@ _Далее описаны пункты для запуска проекта_
 
 _Postman-коллекция с примерами запросов - [Ссылка](https://github.com/yandex-praktikum/java-shareit/blob/add-docker/postman/sprint.json)_
 
-<p align="right">(<a href="#readme-top">к заглавию</a>)</p>
 
-<!-- CONTACT -->
-## Контакты
 
- Афанасьев Александр - Телеграм(@Elessarov) - Alex906026@mail.ru
 
-Ссылка на проект: [https://github.com/Elessarov1/Shareit](https://github.com/Elessarov1/Shareit)
 
 <p align="right">(<a href="#readme-top">к заглавию</a>)</p>
